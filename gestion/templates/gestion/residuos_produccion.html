@@ -1,0 +1,142 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Residuos de Producción{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Residuos de Producción</h1>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                </div>
+                <div class="col-md-3">
+                    <label for="tipo_proceso" class="form-label">Tipo de Proceso</label>
+                    <select class="form-select" id="tipo_proceso" name="tipo_proceso">
+                        <option value="">Todos</option>
+                        <option value="molido">Molido</option>
+                        <option value="lavado">Lavado</option>
+                        <option value="peletizado">Peletizado</option>
+                        <option value="inyeccion">Inyección</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="tipo_residuo" class="form-label">Tipo de Residuo</label>
+                    <select class="form-select" id="tipo_residuo" name="tipo_residuo">
+                        <option value="">Todos</option>
+                        <option value="Merma">Merma</option>
+                        <option value="Scrap">Scrap</option>
+                        <option value="Material Contaminado">Material Contaminado</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumen de Residuos -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Residuos</h5>
+                    <p class="card-text h3">{{ total_residuos|default:"0.00" }} kg</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Porcentaje de Merma</h5>
+                    <p class="card-text h3">{{ porcentaje_merma|default:"0.00" }}%</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Producción</h5>
+                    <p class="card-text h3">{{ total_produccion|default:"0.00" }} kg</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Residuos -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Proceso</th>
+                    <th>Orden de Trabajo</th>
+                    <th>Tipo de Residuo</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for residuo in residuos %}
+                <tr>
+                    <td>{{ residuo.fecha|date:"Y-m-d H:i" }}</td>
+                    <td>{{ residuo.get_proceso_display }}</td>
+                    <td>{{ residuo.orden_trabajo }}</td>
+                    <td>{{ residuo.tipo_residuo }}</td>
+                    <td>{{ residuo.cantidad }}</td>
+                    <td>{{ residuo.unidad_medida }}</td>
+                    <td>{{ residuo.observaciones|default:"-" }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{% url 'gestion:editar_residuo' residuo.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ residuo.id }}">
+                                Eliminar
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No hay registros de residuos</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modales de Eliminación -->
+    {% for residuo in residuos %}
+    <div class="modal fade" id="deleteModal{{ residuo.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Está seguro de que desea eliminar este registro de residuo?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_residuo' residuo.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

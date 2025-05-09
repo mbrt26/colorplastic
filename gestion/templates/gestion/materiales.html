@@ -1,0 +1,155 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Gestión de Materiales{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Gestión de Materiales</h1>
+    
+    <!-- Botón para abrir modal de nuevo material -->
+    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevoMaterialModal">
+        <i class="bi bi-plus-circle"></i> Nuevo Material
+    </button>
+    
+    <!-- Tabla de Materiales -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for material in materiales %}
+                <tr>
+                    <td>{{ material.nombre }}</td>
+                    <td>{{ material.tipo }}</td>
+                    <td>{{ material.descripcion }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#editarMaterialModal{{ material.pk }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" 
+                                    data-bs-target="#eliminarMaterialModal{{ material.pk }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">No hay materiales registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Nuevo Material -->
+    <div class="modal fade" id="nuevoMaterialModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Material</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Seleccione un tipo</option>
+                                <option value="MP">Materia Prima</option>
+                                <option value="PI">Producto Intermedio</option>
+                                <option value="PT">Producto Terminado</option>
+                                <option value="IN">Insumo</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Edición -->
+    {% for material in materiales %}
+    <div class="modal fade" id="editarMaterialModal{{ material.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Material</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:editar_material' material.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre{{ material.pk }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ material.pk }}" name="nombre" 
+                                   value="{{ material.nombre }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo{{ material.pk }}" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo{{ material.pk }}" name="tipo" required>
+                                <option value="MP" {% if material.tipo == 'MP' %}selected{% endif %}>Materia Prima</option>
+                                <option value="PI" {% if material.tipo == 'PI' %}selected{% endif %}>Producto Intermedio</option>
+                                <option value="PT" {% if material.tipo == 'PT' %}selected{% endif %}>Producto Terminado</option>
+                                <option value="IN" {% if material.tipo == 'IN' %}selected{% endif %}>Insumo</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion{{ material.pk }}" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion{{ material.pk }}" name="descripcion" rows="3">{{ material.descripcion }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Eliminación -->
+    <div class="modal fade" id="eliminarMaterialModal{{ material.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar el material {{ material.nombre }}?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_material' material.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

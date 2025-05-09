@@ -1,0 +1,250 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Gestión de Lotes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Gestión de Lotes</h1>
+    
+    <!-- Botón para abrir modal de nuevo lote -->
+    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevoLoteModal">
+        <i class="bi bi-plus-circle"></i> Nuevo Lote
+    </button>
+    
+    <!-- Tabla de Lotes -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Número de Lote</th>
+                    <th>Material</th>
+                    <th>Cantidad Actual</th>
+                    <th>Bodega Actual</th>
+                    <th>Fecha Creación</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lote in lotes %}
+                <tr>
+                    <td>{{ lote.numero_lote }}</td>
+                    <td>{{ lote.id_material.nombre }}</td>
+                    <td>{{ lote.cantidad_actual }} {{ lote.unidad_medida }}</td>
+                    <td>{{ lote.id_bodega_actual.nombre }}</td>
+                    <td>{{ lote.fecha_creacion|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <span class="badge {% if lote.activo %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ lote.activo|yesno:"Activo,Inactivo" }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#editarLoteModal{{ lote.pk }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" 
+                                    data-bs-target="#eliminarLoteModal{{ lote.pk }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No hay lotes registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Nuevo Lote -->
+    <div class="modal fade" id="nuevoLoteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Lote</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="numero_lote" class="form-label">Número de Lote</label>
+                            <input type="text" class="form-control" id="numero_lote" name="numero_lote" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_material" class="form-label">Material</label>
+                            <select class="form-select" id="id_material" name="id_material" required>
+                                <option value="">Seleccione un material</option>
+                                {% for material in materiales %}
+                                <option value="{{ material.pk }}">{{ material.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cantidad_inicial" class="form-label">Cantidad Inicial</label>
+                            <input type="number" step="0.01" class="form-control" id="cantidad_inicial" name="cantidad_inicial" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unidad_medida" class="form-label">Unidad de Medida</label>
+                            <select class="form-select" id="unidad_medida" name="unidad_medida" required>
+                                <option value="kg">Kilogramos</option>
+                                <option value="unidad">Unidades</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_bodega" class="form-label">Bodega</label>
+                            <select class="form-select" id="id_bodega" name="id_bodega" required>
+                                <option value="">Seleccione una bodega</option>
+                                {% for bodega in bodegas %}
+                                <option value="{{ bodega.pk }}">{{ bodega.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clasificacion" class="form-label">Clasificación</label>
+                            <select class="form-select" id="clasificacion" name="clasificacion">
+                                <option value="">Sin clasificación</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="proveedor" class="form-label">Proveedor</label>
+                            <select class="form-select" id="proveedor" name="proveedor">
+                                <option value="">Seleccione un proveedor</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.pk }}">{{ proveedor.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fecha_vencimiento" class="form-label">Fecha de Vencimiento</label>
+                            <input type="date" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento">
+                        </div>
+                        <div class="mb-3">
+                            <label for="costo_unitario" class="form-label">Costo Unitario</label>
+                            <input type="number" step="0.01" class="form-control" id="costo_unitario" name="costo_unitario">
+                        </div>
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Edición -->
+    {% for lote in lotes %}
+    <div class="modal fade" id="editarLoteModal{{ lote.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Lote</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:editar_lote' lote.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="numero_lote{{ lote.pk }}" class="form-label">Número de Lote</label>
+                            <input type="text" class="form-control" id="numero_lote{{ lote.pk }}" name="numero_lote" value="{{ lote.numero_lote }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_material{{ lote.pk }}" class="form-label">Material</label>
+                            <select class="form-select" id="id_material{{ lote.pk }}" name="id_material" required>
+                                {% for material in materiales %}
+                                <option value="{{ material.pk }}" {% if material.pk == lote.id_material.pk %}selected{% endif %}>
+                                    {{ material.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_bodega{{ lote.pk }}" class="form-label">Bodega</label>
+                            <select class="form-select" id="id_bodega{{ lote.pk }}" name="id_bodega" required>
+                                {% for bodega in bodegas %}
+                                <option value="{{ bodega.pk }}" {% if bodega.pk == lote.id_bodega_actual.pk %}selected{% endif %}>
+                                    {{ bodega.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clasificacion{{ lote.pk }}" class="form-label">Clasificación</label>
+                            <select class="form-select" id="clasificacion{{ lote.pk }}" name="clasificacion">
+                                <option value="">Sin clasificación</option>
+                                <option value="A" {% if lote.clasificacion == 'A' %}selected{% endif %}>A</option>
+                                <option value="B" {% if lote.clasificacion == 'B' %}selected{% endif %}>B</option>
+                                <option value="C" {% if lote.clasificacion == 'C' %}selected{% endif %}>C</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="proveedor{{ lote.pk }}" class="form-label">Proveedor</label>
+                            <select class="form-select" id="proveedor{{ lote.pk }}" name="proveedor">
+                                <option value="">Seleccione un proveedor</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.pk }}" {% if proveedor.pk == lote.proveedor_origen.pk %}selected{% endif %}>
+                                    {{ proveedor.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fecha_vencimiento{{ lote.pk }}" class="form-label">Fecha de Vencimiento</label>
+                            <input type="date" class="form-control" id="fecha_vencimiento{{ lote.pk }}" name="fecha_vencimiento" 
+                                   value="{{ lote.fecha_vencimiento|date:'Y-m-d' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="costo_unitario{{ lote.pk }}" class="form-label">Costo Unitario</label>
+                            <input type="number" step="0.01" class="form-control" id="costo_unitario{{ lote.pk }}" name="costo_unitario" 
+                                   value="{{ lote.costo_unitario }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="observaciones{{ lote.pk }}" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones{{ lote.pk }}" name="observaciones" rows="3">{{ lote.observaciones }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Eliminación -->
+    <div class="modal fade" id="eliminarLoteModal{{ lote.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar el lote {{ lote.numero_lote }}?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_lote' lote.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

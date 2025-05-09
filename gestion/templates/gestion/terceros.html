@@ -1,0 +1,187 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Gestión de Terceros{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Gestión de Terceros</h1>
+    
+    <!-- Botón para abrir modal de nuevo tercero -->
+    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevoTerceroModal">
+        <i class="bi bi-plus-circle"></i> Nuevo Tercero
+    </button>
+    
+    <!-- Tabla de Terceros -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Identificación</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Dirección</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tercero in terceros %}
+                <tr>
+                    <td>{{ tercero.nombre }}</td>
+                    <td>{{ tercero.tipo }}</td>
+                    <td>{{ tercero.identificacion }}</td>
+                    <td>{{ tercero.telefono }}</td>
+                    <td>{{ tercero.email }}</td>
+                    <td>{{ tercero.direccion }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#editarTerceroModal{{ tercero.pk }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" 
+                                    data-bs-target="#eliminarTerceroModal{{ tercero.pk }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No hay terceros registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Nuevo Tercero -->
+    <div class="modal fade" id="nuevoTerceroModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Tercero</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Seleccione un tipo</option>
+                                <option value="Cliente">Cliente</option>
+                                <option value="Proveedor">Proveedor</option>
+                                <option value="Transportista">Transportista</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="identificacion" class="form-label">Identificación</label>
+                            <input type="text" class="form-control" id="identificacion" name="identificacion" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono" name="telefono">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="direccion" name="direccion" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Edición -->
+    {% for tercero in terceros %}
+    <div class="modal fade" id="editarTerceroModal{{ tercero.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Tercero</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:editar_tercero' tercero.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre{{ tercero.pk }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ tercero.pk }}" name="nombre" 
+                                   value="{{ tercero.nombre }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo{{ tercero.pk }}" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo{{ tercero.pk }}" name="tipo" required>
+                                <option value="Cliente" {% if tercero.tipo == 'Cliente' %}selected{% endif %}>Cliente</option>
+                                <option value="Proveedor" {% if tercero.tipo == 'Proveedor' %}selected{% endif %}>Proveedor</option>
+                                <option value="Transportista" {% if tercero.tipo == 'Transportista' %}selected{% endif %}>Transportista</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="identificacion{{ tercero.pk }}" class="form-label">Identificación</label>
+                            <input type="text" class="form-control" id="identificacion{{ tercero.pk }}" 
+                                   name="identificacion" value="{{ tercero.identificacion }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telefono{{ tercero.pk }}" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono{{ tercero.pk }}" 
+                                   name="telefono" value="{{ tercero.telefono }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email{{ tercero.pk }}" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email{{ tercero.pk }}" 
+                                   name="email" value="{{ tercero.email }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="direccion{{ tercero.pk }}" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="direccion{{ tercero.pk }}" 
+                                    name="direccion" rows="3">{{ tercero.direccion }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Eliminación -->
+    <div class="modal fade" id="eliminarTerceroModal{{ tercero.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar el tercero {{ tercero.nombre }}?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_tercero' tercero.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

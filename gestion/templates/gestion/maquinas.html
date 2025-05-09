@@ -1,0 +1,178 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Gestión de Máquinas{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Gestión de Máquinas</h1>
+    
+    <!-- Botón para abrir modal de nueva máquina -->
+    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevaMaquinaModal">
+        <i class="bi bi-plus-circle"></i> Nueva Máquina
+    </button>
+    
+    <!-- Tabla de Máquinas -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo de Proceso</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for maquina in maquinas %}
+                <tr>
+                    <td>{{ maquina.nombre }}</td>
+                    <td>{{ maquina.tipo_proceso }}</td>
+                    <td>{{ maquina.descripcion }}</td>
+                    <td>
+                        <span class="badge {% if maquina.activo %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ maquina.activo|yesno:"Activo,Inactivo" }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#editarMaquinaModal{{ maquina.pk }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" 
+                                    data-bs-target="#eliminarMaquinaModal{{ maquina.pk }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No hay máquinas registradas</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Nueva Máquina -->
+    <div class="modal fade" id="nuevaMaquinaModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva Máquina</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo_proceso" class="form-label">Tipo de Proceso</label>
+                            <select class="form-select" id="tipo_proceso" name="tipo_proceso" required>
+                                <option value="">Seleccione un tipo</option>
+                                <option value="Molido">Molido</option>
+                                <option value="Lavado">Lavado</option>
+                                <option value="Peletizado">Peletizado</option>
+                                <option value="Inyeccion">Inyección</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="activo" name="activo" checked>
+                                <label class="form-check-label" for="activo">
+                                    Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Edición -->
+    {% for maquina in maquinas %}
+    <div class="modal fade" id="editarMaquinaModal{{ maquina.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Máquina</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:editar_maquina' maquina.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre{{ maquina.pk }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ maquina.pk }}" name="nombre" 
+                                   value="{{ maquina.nombre }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo_proceso{{ maquina.pk }}" class="form-label">Tipo de Proceso</label>
+                            <select class="form-select" id="tipo_proceso{{ maquina.pk }}" name="tipo_proceso" required>
+                                <option value="Molido" {% if maquina.tipo_proceso == 'Molido' %}selected{% endif %}>Molido</option>
+                                <option value="Lavado" {% if maquina.tipo_proceso == 'Lavado' %}selected{% endif %}>Lavado</option>
+                                <option value="Peletizado" {% if maquina.tipo_proceso == 'Peletizado' %}selected{% endif %}>Peletizado</option>
+                                <option value="Inyeccion" {% if maquina.tipo_proceso == 'Inyeccion' %}selected{% endif %}>Inyección</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion{{ maquina.pk }}" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion{{ maquina.pk }}" name="descripcion" rows="3">{{ maquina.descripcion }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="activo{{ maquina.pk }}" name="activo" 
+                                       {% if maquina.activo %}checked{% endif %}>
+                                <label class="form-check-label" for="activo{{ maquina.pk }}">
+                                    Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Eliminación -->
+    <div class="modal fade" id="eliminarMaquinaModal{{ maquina.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar la máquina {{ maquina.nombre }}?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_maquina' maquina.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

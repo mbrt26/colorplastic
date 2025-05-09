@@ -1,0 +1,84 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Consumos de Producción{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Consumos de Producción</h1>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                </div>
+                <div class="col-md-3">
+                    <label for="proceso" class="form-label">Proceso</label>
+                    <select class="form-select" id="proceso" name="proceso">
+                        <option value="">Todos</option>
+                        <option value="molido">Molido</option>
+                        <option value="lavado">Lavado</option>
+                        <option value="peletizado">Peletizado</option>
+                        <option value="inyeccion">Inyección</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Consumos -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Proceso</th>
+                    <th>Orden de Trabajo</th>
+                    <th>Lote Consumido</th>
+                    <th>Material</th>
+                    <th>Cantidad</th>
+                    <th>Bodega Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for consumo in consumos %}
+                <tr>
+                    <td>{{ consumo.fecha_produccion|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        {% if consumo.id_produccion_molido %}Molido
+                        {% elif consumo.id_produccion_lavado %}Lavado
+                        {% elif consumo.id_produccion_peletizado %}Peletizado
+                        {% elif consumo.id_produccion_inyeccion %}Inyección
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if consumo.id_produccion_molido %}{{ consumo.id_produccion_molido.orden_trabajo }}
+                        {% elif consumo.id_produccion_lavado %}{{ consumo.id_produccion_lavado.orden_trabajo }}
+                        {% elif consumo.id_produccion_peletizado %}{{ consumo.id_produccion_peletizado.orden_trabajo }}
+                        {% elif consumo.id_produccion_inyeccion %}{{ consumo.id_produccion_inyeccion.orden_trabajo }}
+                        {% endif %}
+                    </td>
+                    <td>{{ consumo.id_lote_consumido.numero_lote }}</td>
+                    <td>{{ consumo.id_lote_consumido.id_material.nombre }}</td>
+                    <td>{{ consumo.cantidad_consumida }}</td>
+                    <td>{{ consumo.id_bodega_origen.nombre }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No hay consumos registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

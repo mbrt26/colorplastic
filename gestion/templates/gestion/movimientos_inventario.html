@@ -1,0 +1,153 @@
+{% extends 'gestion/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Movimientos de Inventario</h2>
+    <div class="row mb-3">
+        <div class="col">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoMovimientoModal">
+                <i class="fas fa-exchange-alt"></i> Nuevo Movimiento
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Lote</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Origen</th>
+                            <th>Destino</th>
+                            <th>Soporte</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos %}
+                        <tr>
+                            <td>{{ movimiento.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>{{ movimiento.id_lote.numero_lote }}</td>
+                            <td>{{ movimiento.tipo_movimiento }}</td>
+                            <td>{{ movimiento.cantidad }}</td>
+                            <td>
+                                {% if movimiento.id_origen_bodega %}
+                                    {{ movimiento.id_origen_bodega.nombre }}
+                                {% elif movimiento.id_origen_tercero %}
+                                    {{ movimiento.id_origen_tercero.nombre }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movimiento.id_destino_bodega %}
+                                    {{ movimiento.id_destino_bodega.nombre }}
+                                {% elif movimiento.id_destino_tercero %}
+                                    {{ movimiento.id_destino_tercero.nombre }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ movimiento.consecutivo_soporte|default:"-" }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" title="Ver Detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nuevo Movimiento -->
+<div class="modal fade" id="nuevoMovimientoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Movimiento de Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="nuevoMovimientoForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="lote" class="form-label">Lote</label>
+                            <select class="form-select" id="lote" required>
+                                {% for lote in lotes %}
+                                <option value="{{ lote.id_lote }}">{{ lote.numero_lote }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tipoMovimiento" class="form-label">Tipo de Movimiento</label>
+                            <select class="form-select" id="tipoMovimiento" required>
+                                <option value="Entrada">Entrada</option>
+                                <option value="Salida">Salida</option>
+                                <option value="Traslado">Traslado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cantidad" class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" id="cantidad" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="consecutivoSoporte" class="form-label">Consecutivo Soporte</label>
+                            <input type="text" class="form-control" id="consecutivoSoporte">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="origen" class="form-label">Origen</label>
+                            <select class="form-select" id="origen">
+                                <optgroup label="Bodegas">
+                                    {% for bodega in bodegas %}
+                                    <option value="bodega_{{ bodega.id_bodega }}">{{ bodega.nombre }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="Terceros">
+                                    {% for tercero in terceros %}
+                                    <option value="tercero_{{ tercero.id_tercero }}">{{ tercero.nombre }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="destino" class="form-label">Destino</label>
+                            <select class="form-select" id="destino">
+                                <optgroup label="Bodegas">
+                                    {% for bodega in bodegas %}
+                                    <option value="bodega_{{ bodega.id_bodega }}">{{ bodega.nombre }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="Terceros">
+                                    {% for tercero in terceros %}
+                                    <option value="tercero_{{ tercero.id_tercero }}">{{ tercero.nombre }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="nuevoMovimientoForm" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

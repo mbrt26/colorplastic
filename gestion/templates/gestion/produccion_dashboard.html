@@ -1,0 +1,177 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Producción - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Producción</h5>
+                <div class="btn-group">
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Molido' %}" class="btn btn-primary">
+                        Nuevo Molido
+                    </a>
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Lavado' %}" class="btn btn-primary">
+                        Nuevo Lavado
+                    </a>
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Peletizado' %}" class="btn btn-primary">
+                        Nuevo Peletizado
+                    </a>
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Inyeccion' %}" class="btn btn-primary">
+                        Nueva Inyección
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Producción Molido -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Molido Reciente</h5>
+            </div>
+            <div class="card-body">
+                {% if molido_reciente %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Lote</th>
+                                <th>Cantidad</th>
+                                <th>OT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in molido_reciente %}
+                            <tr>
+                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
+                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.orden_trabajo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay registros de molido recientes.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Producción Lavado -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Lavado Reciente</h5>
+            </div>
+            <div class="card-body">
+                {% if lavado_reciente %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Lote</th>
+                                <th>Cantidad</th>
+                                <th>OT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in lavado_reciente %}
+                            <tr>
+                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
+                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.orden_trabajo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay registros de lavado recientes.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Producción Peletizado -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Peletizado Reciente</h5>
+            </div>
+            <div class="card-body">
+                {% if peletizado_reciente %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Lote</th>
+                                <th>Cantidad</th>
+                                <th>OT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in peletizado_reciente %}
+                            <tr>
+                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
+                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.orden_trabajo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay registros de peletizado recientes.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Producción Inyección -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Inyección Reciente</h5>
+            </div>
+            <div class="card-body">
+                {% if inyeccion_reciente %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Lote</th>
+                                <th>Cantidad</th>
+                                <th>OT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in inyeccion_reciente %}
+                            <tr>
+                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
+                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.orden_trabajo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay registros de inyección recientes.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Inventario {{ bodega.nombre }} - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Inventario - {{ bodega.nombre }}</h5>
+        <div>
+            <a href="{% url 'gestion:traslado_form' %}" class="btn btn-primary">
+                <i class="bi bi-arrow-left-right"></i> Nuevo Traslado
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if lotes %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Lote</th>
+                        <th>Material</th>
+                        <th>Tipo</th>
+                        <th>Stock (kg)</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lote in lotes %}
+                    <tr>
+                        <td>{{ lote.numero_lote }}</td>
+                        <td>{{ lote.id_material.nombre }}</td>
+                        <td>{{ lote.id_material.tipo }}</td>
+                        <td>{{ lote.cantidad_actual|floatformat:2 }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Trasladar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            No hay lotes activos en esta bodega.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function prepararTraslado(loteId, numeroLote, stock) {
+    // Redirigir al formulario de traslado con el lote preseleccionado
+    window.location.href = `{% url 'gestion:traslado_form' %}?lote=${loteId}`;
+}
+</script>
+{% endblock %}

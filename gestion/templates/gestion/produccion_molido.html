@@ -1,0 +1,162 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Producción Molido{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Producción Molido</h1>
+    
+    <!-- Botón de Nuevo Proceso -->
+    <div class="mb-4">
+        <a href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}" class="btn btn-primary">Nuevo Proceso de Molido</a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ request.GET.fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ request.GET.fecha_fin }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="maquina" class="form-label">Máquina</label>
+                    <select class="form-select" id="maquina" name="maquina">
+                        <option value="">Todas</option>
+                        {% for maq in maquinas %}
+                        <option value="{{ maq.id }}" {% if request.GET.maquina == maq.id|stringformat:"s" %}selected{% endif %}>
+                            {{ maq.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="operario" class="form-label">Operario</label>
+                    <select class="form-select" id="operario" name="operario">
+                        <option value="">Todos</option>
+                        {% for op in operarios %}
+                        <option value="{{ op.id }}" {% if request.GET.operario == op.id|stringformat:"s" %}selected{% endif %}>
+                            {{ op.nombre_completo }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Producción -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Orden de Trabajo</th>
+                    <th>Máquina</th>
+                    <th>Operario</th>
+                    <th>Lote Producido</th>
+                    <th>Material</th>
+                    <th>Cantidad Producida</th>
+                    <th>Bodega Destino</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produccion in producciones %}
+                <tr>
+                    <td>{{ produccion.fecha|date:"Y-m-d H:i" }}</td>
+                    <td>{{ produccion.orden_trabajo }}</td>
+                    <td>{{ produccion.id_maquina.nombre }}</td>
+                    <td>{{ produccion.id_operario.nombre_completo }}</td>
+                    <td>{{ produccion.id_lote_producido.numero_lote }}</td>
+                    <td>{{ produccion.id_lote_producido.id_material.nombre }}</td>
+                    <td>{{ produccion.cantidad_producida }}</td>
+                    <td>{{ produccion.id_bodega_destino.nombre }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ produccion.id_produccion }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id_produccion }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">No hay registros de producción</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modales de Edición -->
+    {% for produccion in producciones %}
+    <div class="modal fade" id="editModal{{ produccion.id_produccion }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Producción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:editar_produccion_molido' produccion.id_produccion %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="orden_trabajo{{ produccion.id_produccion }}" class="form-label">Orden de Trabajo</label>
+                            <input type="text" class="form-control" id="orden_trabajo{{ produccion.id_produccion }}" 
+                                   name="orden_trabajo" value="{{ produccion.orden_trabajo|default:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="turno{{ produccion.id_produccion }}" class="form-label">Turno</label>
+                            <input type="text" class="form-control" id="turno{{ produccion.id_produccion }}" 
+                                   name="turno" value="{{ produccion.turno|default:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="observaciones{{ produccion.id_produccion }}" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones{{ produccion.id_produccion }}" 
+                                      name="observaciones" rows="3">{{ produccion.observaciones|default:'' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Eliminación -->
+    <div class="modal fade" id="deleteModal{{ produccion.id_produccion }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Está seguro de que desea eliminar este registro de producción?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_produccion_molido' produccion.id_produccion %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

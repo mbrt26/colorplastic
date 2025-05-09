@@ -1,0 +1,116 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Producción Inyección{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Producción Inyección</h1>
+    
+    <!-- Botón de Nuevo Proceso -->
+    <div class="mb-4">
+        <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="btn btn-primary">Nuevo Proceso de Inyección</a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                </div>
+                <div class="col-md-3">
+                    <label for="maquina" class="form-label">Máquina</label>
+                    <select class="form-select" id="maquina" name="maquina">
+                        <option value="">Todas</option>
+                        {% for maquina in maquinas %}
+                        <option value="{{ maquina.id }}">{{ maquina.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="operario" class="form-label">Operario</label>
+                    <select class="form-select" id="operario" name="operario">
+                        <option value="">Todos</option>
+                        {% for operario in operarios %}
+                        <option value="{{ operario.id }}">{{ operario.nombre_completo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Producción -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Orden de Trabajo</th>
+                    <th>Máquina</th>
+                    <th>Operario</th>
+                    <th>Cantidad Producida</th>
+                    <th>Bodega Destino</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produccion in producciones %}
+                <tr>
+                    <td>{{ produccion.fecha|date:"Y-m-d H:i" }}</td>
+                    <td>{{ produccion.orden_trabajo }}</td>
+                    <td>{{ produccion.id_maquina.nombre }}</td>
+                    <td>{{ produccion.id_operario.nombre_completo }}</td>
+                    <td>{{ produccion.cantidad_producida }}</td>
+                    <td>{{ produccion.id_bodega_destino.nombre }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{% url 'gestion:editar_produccion_inyeccion' produccion.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id }}">
+                                Eliminar
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No hay registros de producción</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modales de Eliminación -->
+    {% for produccion in producciones %}
+    <div class="modal fade" id="deleteModal{{ produccion.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Está seguro de que desea eliminar este registro de producción?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" action="{% url 'gestion:eliminar_produccion_inyeccion' produccion.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

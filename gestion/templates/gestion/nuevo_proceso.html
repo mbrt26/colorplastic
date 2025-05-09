@@ -1,0 +1,226 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Nuevo Proceso de {{ tipo_proceso }} - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Nuevo Proceso de {{ tipo_proceso }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Operario -->
+                    <div class="mb-3">
+                        <label for="operario" class="form-label">Operario</label>
+                        <select class="form-select" id="operario" name="operario" required>
+                            <option value="">Seleccione un operario...</option>
+                            {% for operario in operarios %}
+                            <option value="{{ operario.id_operario }}">{{ operario.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione un operario
+                        </div>
+                    </div>
+
+                    <!-- Turno -->
+                    <div class="mb-3">
+                        <label for="turno" class="form-label">Turno</label>
+                        <select class="form-select" id="turno" name="turno" required>
+                            <option value="">Seleccione un turno...</option>
+                            <option value="Mañana">Mañana</option>
+                            <option value="Tarde">Tarde</option>
+                            <option value="Noche">Noche</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione un turno
+                        </div>
+                    </div>
+
+                    <!-- Máquina -->
+                    <div class="mb-3">
+                        <label for="maquina" class="form-label">Máquina</label>
+                        <select class="form-select" id="maquina" name="maquina" required>
+                            <option value="">Seleccione una máquina...</option>
+                            {% for maquina in maquinas %}
+                            <option value="{{ maquina.id_maquina }}">{{ maquina.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione una máquina
+                        </div>
+                    </div>
+
+                    <!-- Orden de Trabajo -->
+                    <div class="mb-3">
+                        <label for="orden_trabajo" class="form-label">Orden de Trabajo</label>
+                        <input type="text" class="form-control" id="orden_trabajo" name="orden_trabajo" required
+                               pattern="[A-Za-z0-9-]+" title="Solo letras, números y guiones">
+                        <div class="invalid-feedback">
+                            Por favor ingrese una orden de trabajo válida (solo letras, números y guiones)
+                        </div>
+                    </div>
+
+                    <!-- Material de Entrada -->
+                    <div class="mb-3">
+                        <label for="lote_entrada" class="form-label">Lote de Entrada</label>
+                        <select class="form-select" id="lote_entrada" name="lote_entrada" required>
+                            <option value="">Seleccione el lote a procesar...</option>
+                            {% for lote in lotes_disponibles %}
+                            <option value="{{ lote.id_lote }}" 
+                                    data-stock="{{ lote.cantidad_actual }}"
+                                    data-material="{{ lote.id_material.nombre }}"
+                                    data-material-id="{{ lote.id_material.id_material }}">
+                                {{ lote.numero_lote }} - {{ lote.id_material.nombre }} ({{ lote.cantidad_actual|floatformat:2 }} kg)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Stock disponible: <span id="stock_disponible">0.00</span> kg</div>
+                        <div class="invalid-feedback">
+                            Por favor seleccione un lote de entrada
+                        </div>
+                    </div>
+
+                    <!-- Cantidad a Procesar -->
+                    <div class="mb-3">
+                        <label for="cantidad_entrada" class="form-label">Cantidad a Procesar (kg)</label>
+                        <input type="number" 
+                               step="0.01" 
+                               min="0.01"
+                               class="form-control" 
+                               id="cantidad_entrada" 
+                               name="cantidad_entrada" 
+                               required>
+                        <div class="invalid-feedback" id="cantidad-feedback">
+                            La cantidad debe ser mayor que cero y menor o igual al stock disponible
+                        </div>
+                    </div>
+
+                    <!-- Material de Salida (solo si no es inyección) -->
+                    {% if tipo_proceso != 'Inyeccion' %}
+                    <div class="mb-3">
+                        <label for="material_salida" class="form-label">Material de Salida</label>
+                        <select class="form-select" id="material_salida" name="material_salida" required>
+                            <option value="">Seleccione el material resultante...</option>
+                            {% for material in materiales %}
+                            <option value="{{ material.id_material }}">{{ material.nombre }} - {{ material.tipo }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione el material de salida
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bodega de Destino -->
+                    <div class="mb-3">
+                        <label for="bodega_destino" class="form-label">Bodega de Destino</label>
+                        <select class="form-select" id="bodega_destino" name="bodega_destino" required>
+                            <option value="">Seleccione la bodega destino...</option>
+                            {% for bodega in bodegas %}
+                            <option value="{{ bodega.id_bodega }}">{{ bodega.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione una bodega de destino
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                        <div class="form-text">Opcional: Añada cualquier nota relevante sobre el proceso</div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'gestion:produccion_dashboard' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Iniciar Proceso</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del formulario
+    const form = document.querySelector('form');
+    const loteSelect = document.getElementById('lote_entrada');
+    const cantidadInput = document.getElementById('cantidad_entrada');
+    const stockSpan = document.getElementById('stock_disponible');
+    const materialSalidaSelect = document.getElementById('material_salida');
+    
+    // Autoseleccionar el turno basado en la hora actual
+    const turnoSelect = document.getElementById('turno');
+    const hora = new Date().getHours();
+    if (hora >= 6 && hora < 14) {
+        turnoSelect.value = 'Mañana';
+    } else if (hora >= 14 && hora < 22) {
+        turnoSelect.value = 'Tarde';
+    } else {
+        turnoSelect.value = 'Noche';
+    }
+    
+    function actualizarInfoLote() {
+        const selectedOption = loteSelect.options[loteSelect.selectedIndex];
+        if (selectedOption.value) {
+            const stock = selectedOption.dataset.stock || '0.00';
+            stockSpan.textContent = Number(stock).toFixed(2);
+            cantidadInput.max = stock;
+            
+            // Si existe el select de material de salida, preseleccionar basado en el material de entrada
+            if (materialSalidaSelect) {
+                const materialEntradaId = selectedOption.dataset.materialId;
+                // Intentar encontrar el mismo material o uno similar
+                Array.from(materialSalidaSelect.options).forEach(option => {
+                    if (option.value === materialEntradaId) {
+                        materialSalidaSelect.value = materialEntradaId;
+                    }
+                });
+            }
+        } else {
+            stockSpan.textContent = '0.00';
+            cantidadInput.max = '0';
+        }
+    }
+    
+    loteSelect.addEventListener('change', actualizarInfoLote);
+    
+    // Validación de cantidad
+    cantidadInput.addEventListener('input', function() {
+        const stock = parseFloat(stockSpan.textContent);
+        const cantidad = parseFloat(this.value);
+        
+        if (cantidad > stock) {
+            this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
+            document.getElementById('cantidad-feedback').textContent = 
+                'La cantidad no puede ser mayor al stock disponible';
+        } else if (cantidad <= 0) {
+            this.setCustomValidity('La cantidad debe ser mayor que cero');
+            document.getElementById('cantidad-feedback').textContent = 
+                'La cantidad debe ser mayor que cero';
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    
+    // Validación del formulario
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Inicialización
+    actualizarInfoLote();
+});
+</script>
+{% endblock %}

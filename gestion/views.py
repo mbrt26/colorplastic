@@ -736,6 +736,29 @@ def terceros(request):
     }
     return render(request, 'gestion/terceros.html', context)
 
+@login_required
+def bodegas(request):
+    """Vista para gestionar las bodegas."""
+    if request.method == 'POST':
+        try:
+            nombre = request.POST.get('nombre')
+            descripcion = request.POST.get('descripcion', '')
+
+            Bodegas.objects.create(
+                nombre=nombre,
+                descripcion=descripcion
+            )
+            messages.success(request, 'Bodega creada exitosamente.')
+            return redirect('gestion:bodegas')
+        except Exception as e:
+            messages.error(request, f'Error al crear la bodega: {str(e)}')
+
+    bodegas_list = Bodegas.objects.all()
+    context = {
+        'bodegas': bodegas_list,
+    }
+    return render(request, 'gestion/bodegas.html', context)
+
 # Funciones de edición
 @login_required
 @transaction.atomic
@@ -854,6 +877,26 @@ def editar_tercero(request, id):
     }
     return render(request, 'gestion/editar_tercero.html', context)
 
+@login_required
+@transaction.atomic
+def editar_bodega(request, id):
+    """Vista para editar una bodega."""
+    bodega = get_object_or_404(Bodegas, pk=id)
+    if request.method == 'POST':
+        try:
+            bodega.nombre = request.POST.get('nombre')
+            bodega.descripcion = request.POST.get('descripcion', '')
+            bodega.save()
+            messages.success(request, 'Bodega actualizada exitosamente.')
+            return redirect('gestion:bodegas')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar la bodega: {str(e)}')
+    
+    context = {
+        'bodega': bodega,
+    }
+    return render(request, 'gestion/editar_bodega.html', context)
+
 # Funciones de eliminación
 @login_required
 @transaction.atomic
@@ -925,3 +968,17 @@ def eliminar_tercero(request, id):
         except Exception as e:
             messages.error(request, f'Error al eliminar el tercero: {str(e)}')
     return redirect('gestion:terceros')
+
+@login_required
+@transaction.atomic
+def eliminar_bodega(request, id):
+    """Vista para eliminar una bodega."""
+    bodega = get_object_or_404(Bodegas, pk=id)
+    if request.method == 'POST':
+        try:
+            bodega.delete()
+            messages.success(request, 'Bodega eliminada exitosamente.')
+            return redirect('gestion:bodegas')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar la bodega: {str(e)}')
+    return redirect('gestion:bodegas')

@@ -153,6 +153,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='lotes',
-            constraint=models.CheckConstraint(condition=models.Q(('cantidad_actual__gte', 0)), name='check_cantidad_actual_no_negativa'),
+            constraint=models.CheckConstraint(check=models.Q(cantidad_actual__gte=0), name='check_cantidad_actual_no_negativa'),
         ),
     ]

@@ -56,4 +56,9 @@ urlpatterns = [
     path('terceros/', views.terceros, name='terceros'),
     path('terceros/editar/<uuid:id>/', views.editar_tercero, name='editar_tercero'),
     path('terceros/eliminar/<uuid:id>/', views.eliminar_tercero, name='eliminar_tercero'),
+
+    # Gestión de bodegas
+    path('bodegas/', views.bodegas, name='bodegas'),
+    path('bodegas/editar/<uuid:id>/', views.editar_bodega, name='editar_bodega'),
+    path('bodegas/eliminar/<uuid:id>/', views.eliminar_bodega, name='eliminar_bodega'),
 ]

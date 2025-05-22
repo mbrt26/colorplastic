@@ -67,37 +67,82 @@
 
                     <!-- Material de Entrada -->
                     <div class="mb-3">
-                        <label for="lote_entrada" class="form-label">Lote de Entrada</label>
-                        <select class="form-select" id="lote_entrada" name="lote_entrada" required>
-                            <option value="">Seleccione el lote a procesar...</option>
-                            {% for lote in lotes_disponibles %}
-                            <option value="{{ lote.id_lote }}" 
-                                    data-stock="{{ lote.cantidad_actual }}"
-                                    data-material="{{ lote.id_material.nombre }}"
-                                    data-material-id="{{ lote.id_material.id_material }}">
-                                {{ lote.numero_lote }} - {{ lote.id_material.nombre }} ({{ lote.cantidad_actual|floatformat:2 }} kg)
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">Stock disponible: <span id="stock_disponible">0.00</span> kg</div>
-                        <div class="invalid-feedback">
-                            Por favor seleccione un lote de entrada
+                        <label class="form-label">Lotes de Entrada</label>
+                        <button type="button" id="add-lote" class="btn btn-secondary btn-sm mb-2">Agregar Lote</button>
+                        <div id="lotes-container">
+                            <div class="card mb-3 lote-entry">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <label class="form-label">Lote a procesar</label>
+                                            <select class="form-select lote-select" name="lote_entrada[]" required>
+                                                <option value="">Seleccione el lote a procesar...</option>
+                                                {% for lote in lotes_disponibles %}
+                                                <option value="{{ lote.id_lote }}" 
+                                                        data-stock="{{ lote.cantidad_actual }}"
+                                                        data-material="{{ lote.id_material.nombre }}"
+                                                        data-material-id="{{ lote.id_material.id_material }}">
+                                                    {{ lote.numero_lote }} - {{ lote.id_material.nombre }} ({{ lote.cantidad_actual|floatformat:2 }} kg)
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="form-text">Stock disponible: <span class="stock-disponible">0.00</span> kg</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Cantidad (kg)</label>
+                                            <input type="number" 
+                                                   step="0.01" 
+                                                   min="0.01"
+                                                   class="form-control cantidad-entrada" 
+                                                   name="cantidad_entrada[]" 
+                                                   required>
+                                            <div class="invalid-feedback cantidad-feedback">
+                                                La cantidad debe ser mayor que cero y menor o igual al stock disponible
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Cantidad a Procesar -->
-                    <div class="mb-3">
-                        <label for="cantidad_entrada" class="form-label">Cantidad a Procesar (kg)</label>
-                        <input type="number" 
-                               step="0.01" 
-                               min="0.01"
-                               class="form-control" 
-                               id="cantidad_entrada" 
-                               name="cantidad_entrada" 
-                               required>
-                        <div class="invalid-feedback" id="cantidad-feedback">
-                            La cantidad debe ser mayor que cero y menor o igual al stock disponible
-                        </div>
+                        <!-- Template para nuevos lotes -->
+                        <template id="lote-template">
+                            <div class="card mb-3 lote-entry">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <label class="form-label">Lote a procesar</label>
+                                            <select class="form-select lote-select" name="lote_entrada[]" required>
+                                                <option value="">Seleccione el lote a procesar...</option>
+                                                {% for lote in lotes_disponibles %}
+                                                <option value="{{ lote.id_lote }}" 
+                                                        data-stock="{{ lote.cantidad_actual }}"
+                                                        data-material="{{ lote.id_material.nombre }}"
+                                                        data-material-id="{{ lote.id_material.id_material }}">
+                                                    {{ lote.numero_lote }} - {{ lote.id_material.nombre }} ({{ lote.cantidad_actual|floatformat:2 }} kg)
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="form-text">Stock disponible: <span class="stock-disponible">0.00</span> kg</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Cantidad (kg)</label>
+                                            <input type="number" 
+                                                   step="0.01" 
+                                                   min="0.01"
+                                                   class="form-control cantidad-entrada" 
+                                                   name="cantidad_entrada[]" 
+                                                   required>
+                                            <div class="invalid-feedback cantidad-feedback">
+                                                La cantidad debe ser mayor que cero y menor o igual al stock disponible
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <button type="button" class="btn btn-danger btn-sm remove-lote">Eliminar Lote</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
 
                     <!-- Material de Salida (solo si no es inyección) -->
@@ -136,6 +181,83 @@
                         <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
                         <div class="form-text">Opcional: Añada cualquier nota relevante sobre el proceso</div>
                     </div>
+                    
+                    <!-- Subformulario de Paros (Opcional) -->
+                    <button type="button" id="add-paro" class="btn btn-secondary mb-3">Agregar Paro</button>
+                    <div id="paros-container">
+                        <div class="card mb-4 paro-entry">
+                            <div class="card-header">
+                                <h6 class="mb-0">Registrar Paro</h6>
+                            </div>
+                            <div class="card-body row g-3">
+                                <div class="col-md-6">
+                                    <label for="paro_fecha_hora_inicio" class="form-label">Fecha/Hora Inicio Paro</label>
+                                    <input type="datetime-local" class="form-control" name="paro_fecha_hora_inicio[]">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="paro_fecha_hora_fin" class="form-label">Fecha/Hora Fin Paro</label>
+                                    <input type="datetime-local" class="form-control" name="paro_fecha_hora_fin[]">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="paro_motivo" class="form-label">Motivo del Paro</label>
+                                    <select class="form-select" name="paro_motivo[]">
+                                        <option value="">Seleccione motivo...</option>
+                                        {% for motivo in motivos_paro %}
+                                        <option value="{{ motivo.id_motivo }}">{{ motivo.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="paro_operario" class="form-label">Operario que Reporta</label>
+                                    <select class="form-select" name="paro_operario[]">
+                                        <option value="">Seleccione operario...</option>
+                                        {% for operario in operarios %}
+                                        <option value="{{ operario.id_operario }}">{{ operario.nombre_completo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label for="paro_observaciones" class="form-label">Observaciones Paro</label>
+                                    <textarea class="form-control" name="paro_observaciones[]" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Plantilla oculta para nuevos Paros -->
+                    <div id="paro-template" class="d-none">
+                        <div class="card mb-4 paro-entry">
+                            <div class="card-header">
+                                <h6 class="mb-0">Registrar Paro</h6>
+                            </div>
+                            <div class="card-body row g-3">
+                                <div class="col-md-6">
+                                    <input type="datetime-local" class="form-control" name="paro_fecha_hora_inicio[]">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="datetime-local" class="form-control" name="paro_fecha_hora_fin[]">
+                                </div>
+                                <div class="col-md-6">
+                                    <select class="form-select" name="paro_motivo[]">
+                                        <option value="">Seleccione motivo...</option>
+                                        {% for motivo in motivos_paro %}
+                                        <option value="{{ motivo.id_motivo }}">{{ motivo.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <select class="form-select" name="paro_operario[]">
+                                        <option value="">Seleccione operario...</option>
+                                        {% for operario in operarios %}
+                                        <option value="{{ operario.id_operario }}">{{ operario.nombre_completo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <textarea class="form-control" name="paro_observaciones[]" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{% url 'gestion:produccion_dashboard' %}" class="btn btn-secondary me-md-2">Cancelar</a>
@@ -151,9 +273,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Elementos del formulario
     const form = document.querySelector('form');
-    const loteSelect = document.getElementById('lote_entrada');
-    const cantidadInput = document.getElementById('cantidad_entrada');
-    const stockSpan = document.getElementById('stock_disponible');
+    const loteSelects = document.querySelectorAll('.lote-select');
+    const cantidadInputs = document.querySelectorAll('.cantidad-entrada');
+    const stockSpans = document.querySelectorAll('.stock-disponible');
     const materialSalidaSelect = document.getElementById('material_salida');
     
     // Autoseleccionar el turno basado en la hora actual
@@ -167,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
         turnoSelect.value = 'Noche';
     }
     
-    function actualizarInfoLote() {
+    function actualizarInfoLote(loteSelect, stockSpan, cantidadInput) {
         const selectedOption = loteSelect.options[loteSelect.selectedIndex];
         if (selectedOption.value) {
             const stock = selectedOption.dataset.stock || '0.00';
@@ -190,24 +312,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    loteSelect.addEventListener('change', actualizarInfoLote);
+    loteSelects.forEach((loteSelect, index) => {
+        loteSelect.addEventListener('change', () => actualizarInfoLote(loteSelect, stockSpans[index], cantidadInputs[index]));
+    });
     
     // Validación de cantidad
-    cantidadInput.addEventListener('input', function() {
-        const stock = parseFloat(stockSpan.textContent);
-        const cantidad = parseFloat(this.value);
-        
-        if (cantidad > stock) {
-            this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
-            document.getElementById('cantidad-feedback').textContent = 
-                'La cantidad no puede ser mayor al stock disponible';
-        } else if (cantidad <= 0) {
-            this.setCustomValidity('La cantidad debe ser mayor que cero');
-            document.getElementById('cantidad-feedback').textContent = 
-                'La cantidad debe ser mayor que cero';
-        } else {
-            this.setCustomValidity('');
-        }
+    cantidadInputs.forEach((cantidadInput, index) => {
+        cantidadInput.addEventListener('input', function() {
+            const stock = parseFloat(stockSpans[index].textContent);
+            const cantidad = parseFloat(this.value);
+            
+            if (cantidad > stock) {
+                this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
+                this.nextElementSibling.textContent = 'La cantidad no puede ser mayor al stock disponible';
+            } else if (cantidad <= 0) {
+                this.setCustomValidity('La cantidad debe ser mayor que cero');
+                this.nextElementSibling.textContent = 'La cantidad debe ser mayor que cero';
+            } else {
+                this.setCustomValidity('');
+            }
+        });
     });
     
     // Validación del formulario
@@ -220,7 +344,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Inicialización
-    actualizarInfoLote();
+    loteSelects.forEach((loteSelect, index) => {
+        actualizarInfoLote(loteSelect, stockSpans[index], cantidadInputs[index]);
+    });
+
+    // Agregar Lote
+    const addLoteButton = document.getElementById('add-lote');
+    const lotesContainer = document.getElementById('lotes-container');
+    const loteTemplate = document.getElementById('lote-template').content;
+
+    addLoteButton.addEventListener('click', function() {
+        const newLote = document.importNode(loteTemplate, true);
+        lotesContainer.appendChild(newLote);
+
+        const newLoteSelect = lotesContainer.querySelector('.lote-entry:last-child .lote-select');
+        const newStockSpan = lotesContainer.querySelector('.lote-entry:last-child .stock-disponible');
+        const newCantidadInput = lotesContainer.querySelector('.lote-entry:last-child .cantidad-entrada');
+        const removeLoteButton = lotesContainer.querySelector('.lote-entry:last-child .remove-lote');
+
+        newLoteSelect.addEventListener('change', () => actualizarInfoLote(newLoteSelect, newStockSpan, newCantidadInput));
+        newCantidadInput.addEventListener('input', function() {
+            const stock = parseFloat(newStockSpan.textContent);
+            const cantidad = parseFloat(this.value);
+            
+            if (cantidad > stock) {
+                this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
+                this.nextElementSibling.textContent = 'La cantidad no puede ser mayor al stock disponible';
+            } else if (cantidad <= 0) {
+                this.setCustomValidity('La cantidad debe ser mayor que cero');
+                this.nextElementSibling.textContent = 'La cantidad debe ser mayor que cero';
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        removeLoteButton.addEventListener('click', function() {
+            this.closest('.lote-entry').remove();
+        });
+    });
+
+    // Agregar Paro
+    const addParoButton = document.getElementById('add-paro');
+    const parosContainer = document.getElementById('paros-container');
+    const paroTemplate = document.getElementById('paro-template').innerHTML;
+
+    addParoButton.addEventListener('click', function() {
+        parosContainer.insertAdjacentHTML('beforeend', paroTemplate);
+    });
 });
 </script>
 {% endblock %}

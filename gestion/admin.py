@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (
     Materiales, Bodegas, Terceros, Operarios, Maquinas, Lotes, MovimientosInventario,
     ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion,
-    ProduccionConsumo, ParosProduccion, ResiduosProduccion
+    ProduccionConsumo, ParosProduccion, ResiduosProduccion, MotivoParo
 )
 
 # Register your models here.
@@ -312,6 +312,9 @@ class ResiduosProduccionAdmin(admin.ModelAdmin):
             return format_html('<a href="{}">{} OT:{}</a>', url, prod._meta.verbose_name, prod.orden_trabajo or 'N/A')
         return "N/A"
     get_produccion_ref.short_description = 'Producción Asociada'
+
+# Registrar MotivoParo para administración
+admin.site.register(MotivoParo)
 
 # Note: Models without explicit @admin.register are not shown in admin unless registered with admin.site.register()
 # We have registered all relevant models using decorators.

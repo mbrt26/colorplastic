@@ -1,5 +1,9 @@
 from django.urls import path
 from . import views
+from .views import (
+    DespachoListView, DespachoCreateView, DespachoUpdateView, DespachoDetailView,
+    DespachoForm, DetalleDespachoFormSet
+)
 
 app_name = 'gestion'
 
@@ -8,6 +12,12 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('bodega/<uuid:bodega_id>/', views.inventario_bodega, name='inventario_bodega'),
     path('traslado/', views.traslado_form, name='traslado_form'),
+    path('despacho/', views.despacho_form, name='despacho_form'),
+    path('despachos/', views.despachos, name='despachos'),
+    path('despacho/', DespachoListView.as_view(), name='despacho_list'),
+    path('despacho/crear/', DespachoCreateView.as_view(), name='despacho_create'),
+    path('despacho/<int:pk>/editar/', DespachoUpdateView.as_view(), name='despacho_update'),
+    path('despacho/<int:pk>/detalle/', DespachoDetailView.as_view(), name='despacho_detail'),
     
     # Producción
     path('produccion/', views.produccion_dashboard, name='produccion_dashboard'),
@@ -32,6 +42,13 @@ urlpatterns = [
     path('produccion/peletizado/eliminar/<uuid:id>/', views.eliminar_produccion_peletizado, name='eliminar_produccion_peletizado'),
     path('produccion/inyeccion/eliminar/<uuid:id>/', views.eliminar_produccion_inyeccion, name='eliminar_produccion_inyeccion'),
     
+    # URLs para Paros de Producción
+    path('produccion/molido/<uuid:id_produccion>/registrar-paro/', views.registrar_paro_molido, name='registrar_paro_molido'),
+    path('produccion/lavado/<uuid:id_produccion>/registrar-paro/', views.registrar_paro_lavado, name='registrar_paro_lavado'),
+    path('produccion/peletizado/<uuid:id_produccion>/registrar-paro/', views.registrar_paro_peletizado, name='registrar_paro_peletizado'),
+    path('produccion/inyeccion/<uuid:id_produccion>/registrar-paro/', views.registrar_paro_inyeccion, name='registrar_paro_inyeccion'),
+    path('eliminar-paro/<uuid:id_paro>/', views.eliminar_paro, name='eliminar_paro'),
+
     # Gestión de residuos
     path('residuos/editar/<uuid:id>/', views.editar_residuo, name='editar_residuo'),
     path('residuos/eliminar/<uuid:id>/', views.eliminar_residuo, name='eliminar_residuo'),
@@ -61,4 +78,12 @@ urlpatterns = [
     path('bodegas/', views.bodegas, name='bodegas'),
     path('bodegas/editar/<uuid:id>/', views.editar_bodega, name='editar_bodega'),
     path('bodegas/eliminar/<uuid:id>/', views.eliminar_bodega, name='eliminar_bodega'),
+
+    # Gestión de motivos de paro
+    path('motivos-paro/', views.motivos_paro, name='motivos_paro'),
+    path('motivos-paro/editar/<uuid:id>/', views.editar_motivo_paro, name='editar_motivo_paro'),
+    path('motivos-paro/eliminar/<uuid:id>/', views.eliminar_motivo_paro, name='eliminar_motivo_paro'),
+
+    # Inventario global
+    path('inventario/global/', views.inventario_global, name='inventario_global'),
 ]

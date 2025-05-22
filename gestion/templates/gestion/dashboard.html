@@ -132,6 +132,9 @@
                         <a href="{% url 'gestion:bodegas' %}" class="list-group-item list-group-item-action">
                             <i class="bi bi-house-door"></i> Gestión de Bodegas
                         </a>
+                        <a href="{% url 'gestion:motivos_paro' %}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-list"></i> Gestión de Motivos de Paros
+                        </a>
                     </div>
                 </div>
             </div>
@@ -169,6 +172,43 @@
                         {% empty %}
                         <tr>
                             <td colspan="6" class="text-center">No hay movimientos recientes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paros Recientes -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="card-title mb-0">Paros Recientes</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha Inicio</th>
+                            <th>Duración</th>
+                            <th>Proceso</th>
+                            <th>Motivo</th>
+                            <th>Operario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paro in paros_recientes %}
+                        <tr>
+                            <td>{{ paro.fecha_hora_inicio|date:"Y-m-d H:i" }}</td>
+                            <td>{{ paro.duracion }}</td>
+                            <td>{{ paro.proceso }}</td>
+                            <td>{{ paro.motivo.nombre }}</td>
+                            <td>{{ paro.id_operario_reporta.nombre_completo }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay paros registrados</td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -1,0 +1,106 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Detalle de Despacho{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Detalle de Despacho #{{ despacho.numero_remision }}</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'gestion:despacho_update' despacho.id %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{% url 'gestion:despacho_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información General</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Número de Remisión</dt>
+                        <dd class="col-sm-8">{{ despacho.numero_remision }}</dd>
+
+                        <dt class="col-sm-4">Cliente</dt>
+                        <dd class="col-sm-8">{{ despacho.tercero.nombre }}</dd>
+
+                        <dt class="col-sm-4">Dirección de Entrega</dt>
+                        <dd class="col-sm-8">{{ despacho.direccion_entrega }}</dd>
+
+                        <dt class="col-sm-4">Estado</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge {% if despacho.estado == 'pendiente' %}bg-warning
+                                {% elif despacho.estado == 'en_proceso' %}bg-info
+                                {% elif despacho.estado == 'despachado' %}bg-success
+                                {% else %}bg-danger{% endif %}">
+                                {{ despacho.get_estado_display }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Fecha de Creación</dt>
+                        <dd class="col-sm-8">{{ despacho.fecha_creacion|date:"d/m/Y H:i" }}</dd>
+
+                        {% if despacho.fecha_despacho %}
+                        <dt class="col-sm-4">Fecha de Despacho</dt>
+                        <dd class="col-sm-8">{{ despacho.fecha_despacho|date:"d/m/Y H:i" }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            {% if despacho.observaciones %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Observaciones</h5>
+                </div>
+                <div class="card-body">
+                    {{ despacho.observaciones|linebreaks }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Productos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Bodega Origen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in despacho.detalles.all %}
+                                <tr>
+                                    <td>{{ detalle.producto }}</td>
+                                    <td>{{ detalle.cantidad }}</td>
+                                    <td>{{ detalle.bodega_origen }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No hay productos registrados</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

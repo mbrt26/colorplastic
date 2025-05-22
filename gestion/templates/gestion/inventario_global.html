@@ -1,0 +1,204 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Inventario Global - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Inventario Global</h5>
+    </div>
+    <div class="card-body">
+        <!-- Filtros -->
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label for="nombre_material" class="form-label">Nombre del Material</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="nombre_material" 
+                       name="nombre_material" 
+                       value="{{ nombre_material }}"
+                       placeholder="Buscar por nombre...">
+            </div>
+            <div class="col-md-4">
+                <label for="tipo_material" class="form-label">Tipo de Material</label>
+                <select class="form-select" id="tipo_material" name="tipo_material">
+                    <option value="">Todos los tipos</option>
+                    {% for tipo, nombre in tipos_materiales %}
+                    <option value="{{ tipo }}" {% if tipo == tipo_material %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                <a href="{% url 'gestion:inventario_global' %}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+
+        <!-- Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Total Lotes Activos</h6>
+                        <h4 class="card-title mb-0">{{ total_lotes }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Total Kilogramos</h6>
+                        <h4 class="card-title mb-0">{{ total_kg|floatformat:2 }} kg</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventario agrupado -->
+        {% if tipo_material %}
+            <!-- Vista por Material cuando hay filtro de tipo -->
+            {% for material, lotes in inventario_por_material.items %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">{{ material.nombre }} ({{ material.tipo }})</h6>
+                </div>
+                <div class="card-body">
+                    {% if lotes %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Lote</th>
+                                    <th>Bodega</th>
+                                    <th>Stock</th>
+                                    <th>U.M.</th>
+                                    <th>Clasificación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lote in lotes %}
+                                <tr>
+                                    <td>{{ lote.numero_lote }}</td>
+                                    <td>{{ lote.id_bodega_actual.nombre }}</td>
+                                    <td>{{ lote.cantidad_actual|floatformat:2 }}</td>
+                                    <td>{{ lote.unidad_medida }}</td>
+                                    <td>{{ lote.clasificacion|default:"-" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                Trasladar
+                                            </a>
+                                            <a href="{% url 'gestion:despacho_form' %}?lote={{ lote.pk }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                Despachar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <!-- Subtotal por material -->
+                                <tr class="table-info">
+                                    <td colspan="2"><strong>Total {{ material.nombre }}</strong></td>
+                                    <td><strong>{{ lotes|length }}</strong> lotes</td>
+                                    <td colspan="3"><strong>
+                                        {% with total_material=0 %}
+                                            {% for lote in lotes %}
+                                                {% if lote.unidad_medida == 'kg' %}
+                                                    {% with total_material=total_material|add:lote.cantidad_actual %}{% endwith %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {{ total_material|floatformat:2 }} kg
+                                        {% endwith %}
+                                    </strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay lotes activos para este material.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Vista por Bodega (comportamiento original) -->
+            {% for bodega, lotes in inventario_por_bodega.items %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">{{ bodega.nombre }}</h6>
+                </div>
+                <div class="card-body">
+                    {% if lotes %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Lote</th>
+                                    <th>Material</th>
+                                    <th>Tipo</th>
+                                    <th>Stock</th>
+                                    <th>U.M.</th>
+                                    <th>Clasificación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lote in lotes %}
+                                <tr>
+                                    <td>{{ lote.numero_lote }}</td>
+                                    <td>{{ lote.id_material.nombre }}</td>
+                                    <td>{{ lote.id_material.tipo }}</td>
+                                    <td>{{ lote.cantidad_actual|floatformat:2 }}</td>
+                                    <td>{{ lote.unidad_medida }}</td>
+                                    <td>{{ lote.clasificacion|default:"-" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                Trasladar
+                                            </a>
+                                            <a href="{% url 'gestion:despacho_form' %}?lote={{ lote.pk }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                Despachar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay lotes activos en esta bodega.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Highlight filtered rows if searching by name
+    const nombreFilter = document.getElementById('nombre_material').value.toLowerCase();
+    if (nombreFilter) {
+        document.querySelectorAll('table tbody tr').forEach(row => {
+            const materialName = row.children[1]?.textContent.toLowerCase() || 
+                               row.previousElementSibling?.querySelector('.card-header')?.textContent.toLowerCase();
+            if (materialName && materialName.includes(nombreFilter)) {
+                row.classList.add('table-warning');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

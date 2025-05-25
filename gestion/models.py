@@ -106,9 +106,21 @@ class BaseProduccion(models.Model):
     turno = models.CharField(max_length=50, blank=True, null=True, verbose_name='Turno')
     orden_trabajo = models.CharField(max_length=50, blank=True, null=True, verbose_name='Orden de Trabajo')
     id_operario = models.ForeignKey(Operarios, on_delete=models.PROTECT, verbose_name='Operario')
-    cantidad_producida = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Cantidad Producida')
+    # Campos de cantidad con valores por defecto
+    cantidad_entrada = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Cantidad de Entrada')
+    cantidad_salida = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Cantidad de Salida')
     id_bodega_destino = models.ForeignKey(Bodegas, on_delete=models.PROTECT, verbose_name='Bodega Destino Lote Producido')
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
+    archivo_adjunto = models.FileField(upload_to='produccion/archivos/', blank=True, null=True, verbose_name='Archivo Adjunto')
+    # Agregamos campo para merma
+    merma = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Merma (Pérdida)', default=0)
+
+    @property
+    def eficiencia(self):
+        """Calcula la eficiencia del proceso como porcentaje."""
+        if self.cantidad_entrada and self.cantidad_entrada > 0:
+            return (self.cantidad_salida / self.cantidad_entrada) * 100
+        return 0
 
     class Meta:
         abstract = True # Important: This makes it an abstract base class
@@ -232,7 +244,7 @@ class ProduccionMolido(BaseProduccion):
             procesar_movimiento_inventario(
                 tipo_movimiento='AjustePositivo',
                 lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
+                cantidad=self.cantidad_salida,
                 bodega_destino=self.id_bodega_destino,
                 produccion_referencia=str(self.id_produccion),
                 observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
@@ -259,7 +271,7 @@ class ProduccionLavado(BaseProduccion):
             procesar_movimiento_inventario(
                 tipo_movimiento='AjustePositivo',
                 lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
+                cantidad=self.cantidad_salida,
                 bodega_destino=self.id_bodega_destino,
                 produccion_referencia=str(self.id_produccion),
                 observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
@@ -287,7 +299,7 @@ class ProduccionPeletizado(BaseProduccion):
             procesar_movimiento_inventario(
                 tipo_movimiento='AjustePositivo',
                 lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
+                cantidad=self.cantidad_salida,
                 bodega_destino=self.id_bodega_destino,
                 produccion_referencia=str(self.id_produccion),
                 observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
@@ -313,7 +325,7 @@ class ProduccionInyeccion(BaseProduccion):
             procesar_movimiento_inventario(
                 tipo_movimiento='AjustePositivo',
                 lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
+                cantidad=self.cantidad_salida,
                 bodega_destino=self.id_bodega_destino,
                 produccion_referencia=str(self.id_produccion),
                 observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"

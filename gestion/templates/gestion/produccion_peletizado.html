@@ -59,8 +59,11 @@
                     <th>Operario</th>
                     <th>Lote Producido</th>
                     <th>Material</th>
-                    <th>Cantidad Producida</th>
+                    <th>Cantidad Entrada</th>
+                    <th>Cantidad Salida</th>
+                    <th>Eficiencia</th>
                     <th>Bodega Destino</th>
+                    <th>Mezclas</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -73,8 +76,11 @@
                     <td>{{ produccion.id_operario.nombre_completo }}</td>
                     <td>{{ produccion.id_lote_producido.numero_lote }}</td>
                     <td>{{ produccion.id_lote_producido.id_material.nombre }}</td>
-                    <td>{{ produccion.cantidad_producida }}</td>
+                    <td>{{ produccion.cantidad_entrada }}</td>
+                    <td>{{ produccion.cantidad_salida }}</td>
+                    <td>{{ produccion.eficiencia|floatformat:2 }}%</td>
                     <td>{{ produccion.id_bodega_destino.nombre }}</td>
+                    <td>{{ produccion.numero_mezclas }}</td>
                     <td>
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ produccion.id }}">
@@ -91,7 +97,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center">No hay registros de producción</td>
+                    <td colspan="12" class="text-center">No hay registros de producción</td>
                 </tr>
                 {% endfor %}
             </tbody>

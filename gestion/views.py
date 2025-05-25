@@ -245,6 +245,7 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 turno = request.POST.get('turno')
                 bodega_destino = Bodegas.objects.get(pk=request.POST.get('bodega_destino'))
                 observaciones = request.POST.get('observaciones', '')
+                archivo_adjunto = request.FILES.get('archivo_adjunto')
                 
                 # Obtener lotes y cantidades
                 lotes_entrada = request.POST.getlist('lote_entrada[]')
@@ -254,10 +255,14 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 if not lotes_entrada:
                     raise ValidationError('Debe seleccionar al menos un lote de entrada')
                 
-                # Calcular cantidad total a producir
-                cantidad_total = Decimal('0')
+                # Calcular cantidad total de entrada
+                cantidad_total_entrada = Decimal('0')
                 for cantidad in cantidades_entrada:
-                    cantidad_total += Decimal(cantidad)
+                    cantidad_total_entrada += Decimal(cantidad)
+                
+                # Por defecto, la cantidad de salida es igual a la de entrada
+                # En la práctica, esto debería ajustarse según el proceso específico
+                cantidad_total_salida = cantidad_total_entrada
                 
                 # Crear el lote de producción (excepto para inyección)
                 if tipo_proceso_normalizado != 'Inyeccion':
@@ -265,8 +270,8 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                     nuevo_lote = Lotes.objects.create(
                         numero_lote=f"{orden_trabajo}-{tipo_proceso_normalizado}",
                         id_material=material_salida,
-                        cantidad_inicial=cantidad_total,
-                        cantidad_actual=cantidad_total,
+                        cantidad_inicial=cantidad_total_salida,
+                        cantidad_actual=cantidad_total_salida,
                         id_bodega_actual=bodega_destino,
                         activo=True
                     )
@@ -287,6 +292,7 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                         cantidad=cantidad,
                         bodega_origen=lote.id_bodega_actual,
                         bodega_destino=None,
+                        produccion_referencia=orden_trabajo,
                         observaciones=f"Consumo para {tipo_proceso_normalizado} - OT: {orden_trabajo}"
                     )
                 
@@ -297,8 +303,10 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                     'orden_trabajo': orden_trabajo,
                     'turno': turno,
                     'id_bodega_destino': bodega_destino,
-                    'cantidad_producida': cantidad_total,
-                    'observaciones': observaciones
+                    'cantidad_entrada': cantidad_total_entrada,
+                    'cantidad_salida': cantidad_total_salida,
+                    'observaciones': observaciones,
+                    'archivo_adjunto': archivo_adjunto
                 }
                 
                 if tipo_proceso_normalizado != 'Inyeccion':
@@ -310,10 +318,12 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 elif tipo_proceso_normalizado == 'Lavado':
                     proceso = ProduccionLavado.objects.create(**proceso_data)
                 elif tipo_proceso_normalizado == 'Peletizado':
+                    proceso_data['numero_mezclas'] = request.POST.get('numero_mezclas', 1)
                     proceso = ProduccionPeletizado.objects.create(**proceso_data)
                 elif tipo_proceso_normalizado == 'Inyeccion':
+                    proceso_data['numero_mezclas'] = request.POST.get('numero_mezclas', 1)
                     proceso = ProduccionInyeccion.objects.create(**proceso_data)
-                
+
                 # Registrar consumos en la tabla ProduccionConsumo
                 for lote_id, cantidad in zip(lotes_entrada, cantidades_entrada):
                     lote = Lotes.objects.get(pk=lote_id)
@@ -489,10 +499,10 @@ def residuos_produccion(request):
     if fecha_inicio and fecha_fin:
         filtro_fecha = Q(fecha__range=[fecha_inicio, fecha_fin])
         produccion_total += (
-            ProduccionMolido.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_producida'))['total'] or 0 +
-            ProduccionLavado.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_producida'))['total'] or 0 +
-            ProduccionPeletizado.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_producida'))['total'] or 0 +
-            ProduccionInyeccion.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_producida'))['total'] or 0
+            ProduccionMolido.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_salida'))['total'] or 0 +
+            ProduccionLavado.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_salida'))['total'] or 0 +
+            ProduccionPeletizado.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_salida'))['total'] or 0 +
+            ProduccionInyeccion.objects.filter(filtro_fecha).aggregate(total=Sum('cantidad_salida'))['total'] or 0
         )
     
     # Calcular porcentaje de merma
@@ -1335,7 +1345,7 @@ def inventario_global(request):
         materiales_dict = {}
         for lote in lotes:
             material = lote.id_material
-            if material not in materiales_dict:
+            if (material) not in materiales_dict:
                 materiales_dict[material] = []
             materiales_dict[material].append(lote)
         context['inventario_por_material'] = materiales_dict

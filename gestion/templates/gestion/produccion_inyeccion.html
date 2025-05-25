@@ -57,7 +57,11 @@
                     <th>Orden de Trabajo</th>
                     <th>Máquina</th>
                     <th>Operario</th>
-                    <th>Cantidad Producida</th>
+                    <th>Lote Producido</th>
+                    <th>Material</th>
+                    <th>Cantidad Entrada</th>
+                    <th>Cantidad Salida</th>
+                    <th>Eficiencia</th>
                     <th>Bodega Destino</th>
                     <th>Acciones</th>
                 </tr>
@@ -69,7 +73,11 @@
                     <td>{{ produccion.orden_trabajo }}</td>
                     <td>{{ produccion.id_maquina.nombre }}</td>
                     <td>{{ produccion.id_operario.nombre_completo }}</td>
-                    <td>{{ produccion.cantidad_producida }}</td>
+                    <td>{{ produccion.id_lote_producido.numero_lote }}</td>
+                    <td>{{ produccion.id_lote_producido.id_material.nombre }}</td>
+                    <td>{{ produccion.cantidad_entrada }}</td>
+                    <td>{{ produccion.cantidad_salida }}</td>
+                    <td>{{ produccion.eficiencia|floatformat:2 }}%</td>
                     <td>{{ produccion.id_bodega_destino.nombre }}</td>
                     <td>
                         <div class="btn-group">
@@ -87,7 +95,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center">No hay registros de producción</td>
+                    <td colspan="11" class="text-center">No hay registros de producción</td>
                 </tr>
                 {% endfor %}
             </tbody>

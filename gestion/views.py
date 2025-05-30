@@ -37,15 +37,17 @@ class DetalleDespachoFormSet(forms.BaseInlineFormSet):
         super().clean()
         total = 0
         for form in self.forms:
-            if not form.is_valid():
+            if not hasattr(form, "cleaned_data") or not form.is_valid():
                 continue
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                cantidad = form.cleaned_data.get('cantidad', 0)
+            if form.cleaned_data and not form.cleaned_data.get("DELETE", False):
+                cantidad = form.cleaned_data.get("cantidad", 0)
                 if cantidad <= 0:
-                    raise forms.ValidationError('La cantidad debe ser mayor que cero.')
+                    raise forms.ValidationError("La cantidad debe ser mayor que cero.")
                 total += cantidad
-        if total <= 0:
-            raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
+
+        # Permitir la actualización cuando ya existen detalles almacenados
+        if total <= 0 and not self.instance.detalles.exists():
+            raise forms.ValidationError("Debe incluir al menos un producto en el despacho.")
 
 DetalleDespachoFormSet = forms.inlineformset_factory(
     Despacho, DetalleDespacho,
@@ -109,10 +111,27 @@ class DespachoUpdateView(LoginRequiredMixin, UpdateView):
         context = self.get_context_data()
         formset = context['formset']
         if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            return super().form_valid(form)
+            # Mantener referencia al estado anterior para evitar doble descuento
+            estado_anterior = self.object.estado
+            with transaction.atomic():
+                self.object = form.save(commit=False)
+                if self.object.estado == 'despachado' and not self.object.fecha_despacho:
+                    self.object.fecha_despacho = timezone.now()
+                self.object.save()
+                formset.instance = self.object
+                formset.save()
+
+                if estado_anterior != 'despachado' and self.object.estado == 'despachado':
+                    for detalle in self.object.detalles.all():
+                        procesar_movimiento_inventario(
+                            tipo_movimiento='Venta',
+                            lote=detalle.producto,
+                            cantidad=detalle.cantidad,
+                            bodega_origen=detalle.bodega_origen,
+                            id_destino_tercero=self.object.tercero,
+                            consecutivo_soporte=self.object.numero_remision,
+                        )
+            return redirect(self.get_success_url())
         else:
             return self.render_to_response(self.get_context_data(form=form))
 

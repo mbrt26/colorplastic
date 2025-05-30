@@ -91,12 +91,17 @@ def revertir_produccion(sender, instance, **kwargs):
 def revertir_consumo_produccion(sender, instance, **kwargs):
     from .inventario_utils import revert_movimiento_inventario
 
-    produccion_padre = instance.get_produccion_padre()
-    if not produccion_padre:
+    produccion_padre_id = (
+        instance.id_produccion_molido_id or
+        instance.id_produccion_lavado_id or
+        instance.id_produccion_peletizado_id or
+        instance.id_produccion_inyeccion_id
+    )
+    if not produccion_padre_id:
         return
 
     movimientos = MovimientosInventario.objects.filter(
-        produccion_referencia=str(produccion_padre.id_produccion),
+        produccion_referencia=str(produccion_padre_id),
         id_lote=instance.id_lote_consumido,
         tipo_movimiento="ConsumoProduccion",
     )

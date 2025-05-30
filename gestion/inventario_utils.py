@@ -60,7 +60,22 @@ def procesar_movimiento_inventario(tipo_movimiento, lote, cantidad, bodega_orige
         elif tipo_movimiento in ['Compra', 'IngresoServicio', 'AjustePositivo']:
             if not bodega_destino:
                 raise ValidationError(f"Movimiento de entrada ({tipo_movimiento}) requiere bodega destino.")
-            lote_original.cantidad_actual += cantidad
+            
+            # Para IngresoServicio de producción, verificar si es un lote recién creado
+            if tipo_movimiento == 'IngresoServicio':
+                # Si el lote ya tiene la cantidad y está en la bodega destino,
+                # solo registramos el movimiento sin modificar la cantidad
+                # (esto evita duplicar el stock en lotes de producción)
+                if (lote_original.id_bodega_actual == bodega_destino and 
+                    lote_original.cantidad_actual >= cantidad):
+                    # Lote ya creado con la cantidad correcta, solo registrar movimiento
+                    pass  # No modificar cantidad_actual
+                else:
+                    # Movimiento de ingreso normal (compras, ajustes, etc.)
+                    lote_original.cantidad_actual += cantidad
+            else:
+                # Para Compra y AjustePositivo siempre sumar
+                lote_original.cantidad_actual += cantidad
         else:
             raise ValidationError(f"Tipo de movimiento no soportado: {tipo_movimiento}")
             

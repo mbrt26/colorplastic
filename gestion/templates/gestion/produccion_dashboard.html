@@ -9,16 +9,16 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Producción</h5>
                 <div class="btn-group">
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Molido' %}" class="btn btn-primary">
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}" class="btn btn-primary">
                         Nuevo Molido
                     </a>
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Lavado' %}" class="btn btn-primary">
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'lavado' %}" class="btn btn-primary">
                         Nuevo Lavado
                     </a>
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Peletizado' %}" class="btn btn-primary">
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'peletizado' %}" class="btn btn-primary">
                         Nuevo Peletizado
                     </a>
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'Inyeccion' %}" class="btn btn-primary">
+                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="btn btn-primary">
                         Nueva Inyección
                     </a>
                 </div>
@@ -40,7 +40,9 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Lote</th>
-                                <th>Cantidad</th>
+                                <th>Cantidad Entrada</th>
+                                <th>Cantidad Salida</th>
+                                <th>Eficiencia</th>
                                 <th>OT</th>
                             </tr>
                         </thead>
@@ -49,7 +51,9 @@
                             <tr>
                                 <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
+                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
                                 <td>{{ prod.orden_trabajo }}</td>
                             </tr>
                             {% endfor %}
@@ -77,7 +81,9 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Lote</th>
-                                <th>Cantidad</th>
+                                <th>Cantidad Entrada</th>
+                                <th>Cantidad Salida</th>
+                                <th>Eficiencia</th>
                                 <th>OT</th>
                             </tr>
                         </thead>
@@ -86,7 +92,9 @@
                             <tr>
                                 <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
+                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
                                 <td>{{ prod.orden_trabajo }}</td>
                             </tr>
                             {% endfor %}
@@ -114,7 +122,9 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Lote</th>
-                                <th>Cantidad</th>
+                                <th>Cantidad Entrada</th>
+                                <th>Cantidad Salida</th>
+                                <th>Eficiencia</th>
                                 <th>OT</th>
                             </tr>
                         </thead>
@@ -123,7 +133,9 @@
                             <tr>
                                 <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
+                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
                                 <td>{{ prod.orden_trabajo }}</td>
                             </tr>
                             {% endfor %}
@@ -151,7 +163,9 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Lote</th>
-                                <th>Cantidad</th>
+                                <th>Cantidad Entrada</th>
+                                <th>Cantidad Salida</th>
+                                <th>Eficiencia</th>
                                 <th>OT</th>
                             </tr>
                         </thead>
@@ -160,7 +174,9 @@
                             <tr>
                                 <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_producida|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
+                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
+                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
                                 <td>{{ prod.orden_trabajo }}</td>
                             </tr>
                             {% endfor %}

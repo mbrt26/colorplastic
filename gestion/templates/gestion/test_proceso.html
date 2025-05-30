@@ -1,0 +1,72 @@
+{% extends 'gestion/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>Vista de Prueba - Proceso Directo</h2>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Información del Lote de Prueba</h5>
+                </div>
+                <div class="card-body">
+                    {% if lote %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Número de Lote:</strong> {{ lote.numero_lote }}</p>
+                                <p><strong>Material:</strong> {{ lote.id_material.nombre }}</p>
+                                <p><strong>Stock Actual:</strong> {{ lote.cantidad_actual }} kg</p>
+                                <p><strong>Activo:</strong> {% if lote.activo %}Sí{% else %}No{% endif %}</p>
+                                <p><strong>Bodega:</strong> {{ lote.id_bodega_actual.nombre }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>ID del Lote:</strong> {{ lote.id_lote }}</p>
+                                <p><strong>Fecha Creación:</strong> {{ lote.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                                <p><strong>Fecha Modificación:</strong> {{ lote.fecha_modificacion|date:"d/m/Y H:i" }}</p>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="alert alert-info">
+                            <h6>Descripción de la Prueba:</h6>
+                            <p>Esta vista procesará directamente 0.5 kg del lote seleccionado usando la función <code>procesar_movimiento_inventario</code> 
+                            con tipo de movimiento 'ConsumoProduccion'. Esto ayudará a identificar si el problema está en el formulario web 
+                            o en la lógica de procesamiento.</p>
+                        </div>
+                        
+                        <form method="post" class="mt-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning" onclick="return confirm('¿Está seguro de procesar 0.5 kg de este lote? Esta acción modificará el inventario.')">
+                                <i class="fas fa-cogs"></i> Procesar 0.5 kg Directamente
+                            </button>
+                        </form>
+                        
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <h6>Error:</h6>
+                            <p>No se encontró el lote de prueba "1-Lavado-20250529201736".</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <a href="{% url 'gestion:produccion_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard de Producción
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

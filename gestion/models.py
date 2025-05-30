@@ -4,6 +4,7 @@ from django.utils import timezone # Import timezone
 from django.conf import settings # Import settings to get AUTH_USER_MODEL
 from django.core.exceptions import ValidationError # Import for clean method
 from django.db.models import CheckConstraint, Q, F, Index, Expression # Import for constraints and indexes
+from django.contrib.auth.models import User  # Import User model
 
 # Create your models here.
 
@@ -55,6 +56,7 @@ class Terceros(models.Model):
     direccion = models.TextField(blank=True, null=True, verbose_name='Dirección')
     telefono = models.CharField(max_length=50, blank=True, null=True, verbose_name='Teléfono')
     email = models.EmailField(blank=True, null=True, verbose_name='Email')
+    activo = models.BooleanField(default=True, verbose_name='Activo')
 
     def __str__(self):
         return f'{self.nombre} ({self.tipo})'
@@ -104,9 +106,21 @@ class BaseProduccion(models.Model):
     turno = models.CharField(max_length=50, blank=True, null=True, verbose_name='Turno')
     orden_trabajo = models.CharField(max_length=50, blank=True, null=True, verbose_name='Orden de Trabajo')
     id_operario = models.ForeignKey(Operarios, on_delete=models.PROTECT, verbose_name='Operario')
-    cantidad_producida = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Cantidad Producida')
+    # Campos de cantidad con valores por defecto
+    cantidad_entrada = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Cantidad de Entrada')
+    cantidad_salida = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Cantidad de Salida')
     id_bodega_destino = models.ForeignKey(Bodegas, on_delete=models.PROTECT, verbose_name='Bodega Destino Lote Producido')
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
+    archivo_adjunto = models.FileField(upload_to='produccion/archivos/', blank=True, null=True, verbose_name='Archivo Adjunto')
+    # Agregamos campo para merma
+    merma = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Merma (Pérdida)', default=0)
+
+    @property
+    def eficiencia(self):
+        """Calcula la eficiencia del proceso como porcentaje."""
+        if self.cantidad_entrada and self.cantidad_entrada > 0:
+            return (self.cantidad_salida / self.cantidad_entrada) * 100
+        return 0
 
     class Meta:
         abstract = True # Important: This makes it an abstract base class
@@ -219,7 +233,7 @@ class MovimientosInventario(models.Model):
 # --- Production Models Now Inherit Correctly ---
 class ProduccionMolido(BaseProduccion):
     id_maquina = models.ForeignKey(Maquinas, limit_choices_to={'tipo_proceso': 'Molido'}, on_delete=models.PROTECT, verbose_name='Molino')
-    # ADDED: id_lote_producido con related_name único
+    # ADDED: id_lote_producido with related_name único
     id_lote_producido = models.OneToOneField(Lotes, on_delete=models.PROTECT, related_name='produccion_molido_origen', verbose_name='Lote Producido')
     # REMOVED: clasificacion_producida - Assuming classification is on the Lote
     # clasificacion_producida = models.CharField(max_length=10, choices=Lotes.CLASIFICACION_CHOICES, blank=True, null=True, verbose_name='Clasificación Producida')
@@ -227,14 +241,20 @@ class ProduccionMolido(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -254,14 +274,20 @@ class ProduccionLavado(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -282,14 +308,20 @@ class ProduccionPeletizado(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -308,14 +340,20 @@ class ProduccionInyeccion(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_producida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -364,6 +402,18 @@ class ProduccionConsumo(models.Model):
         # ]
 
 
+# Nuevo modelo para motivos de paro
+class MotivoParo(models.Model):
+    id_motivo = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre = models.CharField(max_length=100, unique=True, verbose_name='Motivo')
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = 'Motivo de Paro'
+        verbose_name_plural = 'Motivos de Paros'
+
 class ParosProduccion(models.Model):
     id_paro = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Vinculación similar a ProduccionConsumo
@@ -374,13 +424,31 @@ class ParosProduccion(models.Model):
 
     fecha_hora_inicio = models.DateTimeField(verbose_name='Fecha/Hora Inicio Paro')
     fecha_hora_fin = models.DateTimeField(verbose_name='Fecha/Hora Fin Paro')
-    motivo = models.TextField(verbose_name='Motivo del Paro')
+    motivo = models.ForeignKey(MotivoParo, on_delete=models.PROTECT, verbose_name='Motivo del Paro')
     id_operario_reporta = models.ForeignKey(Operarios, on_delete=models.PROTECT, verbose_name='Operario que Reporta')
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
 
     @property
     def duracion(self):
-        return self.fecha_hora_fin - self.fecha_hora_inicio
+        """Calcula la duración del paro en horas y minutos."""
+        if self.fecha_hora_inicio and self.fecha_hora_fin:
+            diferencia = self.fecha_hora_fin - self.fecha_hora_inicio
+            horas = diferencia.total_seconds() / 3600
+            return f"{horas:.2f} horas"
+        return "N/A"
+
+    @property
+    def proceso(self):
+        """Retorna el tipo de proceso al que está asociado el paro."""
+        if self.id_produccion_molido:
+            return "Molido"
+        elif self.id_produccion_lavado:
+            return "Lavado"
+        elif self.id_produccion_peletizado:
+            return "Peletizado"
+        elif self.id_produccion_inyeccion:
+            return "Inyección"
+        return "N/A"
 
     def get_produccion_padre(self):
         # Método helper
@@ -435,3 +503,37 @@ class ResiduosProduccion(models.Model):
         ordering = ['-fecha']
 
 # --- Fin Modelos de Producción ---
+
+class Despacho(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('en_proceso', 'En Proceso'),
+        ('despachado', 'Despachado'),
+        ('cancelado', 'Cancelado'),
+    ]
+
+    numero_remision = models.CharField(max_length=50, unique=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_despacho = models.DateTimeField(null=True, blank=True)
+    tercero = models.ForeignKey('Terceros', on_delete=models.PROTECT, related_name='despachos')
+    direccion_entrega = models.CharField(max_length=255)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    observaciones = models.TextField(blank=True)
+    usuario_creacion = models.ForeignKey(User, on_delete=models.PROTECT, related_name='despachos_creados')
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Despacho'
+        verbose_name_plural = 'Despachos'
+
+    def __str__(self):
+        return f"Despacho #{self.numero_remision} - {self.tercero}"
+
+class DetalleDespacho(models.Model):
+    despacho = models.ForeignKey(Despacho, on_delete=models.CASCADE, related_name='detalles')
+    producto = models.ForeignKey('Lotes', on_delete=models.PROTECT)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
+    bodega_origen = models.ForeignKey('Bodegas', on_delete=models.PROTECT)
+    
+    def __str__(self):
+        return f"{self.despacho.numero_remision} - {self.producto} ({self.cantidad})"

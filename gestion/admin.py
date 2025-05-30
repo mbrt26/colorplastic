@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (
     Materiales, Bodegas, Terceros, Operarios, Maquinas, Lotes, MovimientosInventario,
     ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion,
-    ProduccionConsumo, ParosProduccion, ResiduosProduccion
+    ProduccionConsumo, ParosProduccion, ResiduosProduccion, MotivoParo
 )
 
 # Register your models here.
@@ -179,11 +179,11 @@ class MovimientosInventarioAdmin(admin.ModelAdmin):
 
 # --- Base Admin for Production Models ---
 class BaseProduccionAdmin(admin.ModelAdmin):
-    list_display = ('fecha', 'orden_trabajo', 'id_lote_producido', 'cantidad_producida', 'id_maquina', 'id_operario', 'id_bodega_destino')
+    list_display = ('fecha', 'orden_trabajo', 'id_lote_producido', 'cantidad_entrada', 'cantidad_salida', 'eficiencia', 'id_maquina', 'id_operario', 'id_bodega_destino')
     list_filter = ('fecha', 'id_maquina__nombre', 'id_operario__nombre_completo', 'id_bodega_destino__nombre')
     search_fields = ('orden_trabajo', 'id_lote_producido__numero_lote', 'observaciones')
     autocomplete_fields = ['id_lote_producido', 'id_operario', 'id_maquina', 'id_bodega_destino']
-    readonly_fields = ('id_produccion', 'fecha') # ID and creation date
+    readonly_fields = ('id_produccion', 'fecha', 'eficiencia') # ID, creation date and eficiencia
     date_hierarchy = 'fecha'
     list_per_page = 20
     fieldsets = (
@@ -191,10 +191,10 @@ class BaseProduccionAdmin(admin.ModelAdmin):
             'fields': ('fecha', 'turno', 'orden_trabajo', 'id_operario', 'id_maquina')
         }),
         ('Lote Producido', {
-            'fields': ('id_lote_producido', 'cantidad_producida', 'id_bodega_destino')
+            'fields': ('id_lote_producido', 'cantidad_entrada', 'cantidad_salida', 'merma', 'id_bodega_destino')
         }),
          ('Detalles Adicionales', {
-            'fields': ('observaciones',),
+            'fields': ('observaciones', 'archivo_adjunto'),
              'classes': ('collapse',)
         }),
     )
@@ -224,10 +224,10 @@ class ProduccionPeletizadoAdmin(BaseProduccionAdmin):
             'fields': ('fecha', 'turno', 'orden_trabajo', 'id_operario', 'id_maquina')
         }),
         ('Lote Producido', {
-            'fields': ('id_lote_producido', 'cantidad_producida', 'id_bodega_destino', 'numero_mezclas') # Added numero_mezclas
+            'fields': ('id_lote_producido', 'cantidad_entrada', 'cantidad_salida', 'merma', 'id_bodega_destino', 'numero_mezclas')
         }),
          ('Detalles Adicionales', {
-            'fields': ('observaciones',),
+            'fields': ('observaciones', 'archivo_adjunto'),
              'classes': ('collapse',)
         }),
     )
@@ -244,10 +244,10 @@ class ProduccionInyeccionAdmin(BaseProduccionAdmin):
             'fields': ('fecha', 'turno', 'orden_trabajo', 'id_operario', 'id_maquina')
         }),
         ('Lote Producido', {
-            'fields': ('id_lote_producido', 'cantidad_producida', 'id_bodega_destino', 'numero_mezclas') # Added numero_mezclas
+            'fields': ('id_lote_producido', 'cantidad_entrada', 'cantidad_salida', 'merma', 'id_bodega_destino', 'numero_mezclas')
         }),
          ('Detalles Adicionales', {
-            'fields': ('observaciones',),
+            'fields': ('observaciones', 'archivo_adjunto'),
              'classes': ('collapse',)
         }),
     )
@@ -312,6 +312,9 @@ class ResiduosProduccionAdmin(admin.ModelAdmin):
             return format_html('<a href="{}">{} OT:{}</a>', url, prod._meta.verbose_name, prod.orden_trabajo or 'N/A')
         return "N/A"
     get_produccion_ref.short_description = 'Producción Asociada'
+
+# Registrar MotivoParo para administración
+admin.site.register(MotivoParo)
 
 # Note: Models without explicit @admin.register are not shown in admin unless registered with admin.site.register()
 # We have registered all relevant models using decorators.

@@ -1,0 +1,67 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Listado de Despachos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Listado de Despachos</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'gestion:despacho_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nuevo Despacho
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Remisión</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for despacho in despachos %}
+                        <tr>
+                            <td>{{ despacho.numero_remision }}</td>
+                            <td>{{ despacho.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                            <td>{{ despacho.tercero.nombre }}</td>
+                            <td>
+                                <span class="badge {% if despacho.estado == 'pendiente' %}bg-warning
+                                    {% elif despacho.estado == 'en_proceso' %}bg-info
+                                    {% elif despacho.estado == 'despachado' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ despacho.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'gestion:despacho_detail' despacho.id %}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'gestion:despacho_update' despacho.id %}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay despachos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

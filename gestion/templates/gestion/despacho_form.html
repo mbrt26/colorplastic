@@ -1,0 +1,169 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}{{ object.id|yesno:"Editar,Nuevo" }} Despacho{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ object.id|yesno:"Editar,Nuevo" }} Despacho</h2>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.numero_remision.id_for_label }}" class="form-label">Número de Remisión</label>
+                            {{ form.numero_remision }}
+                            {% if form.numero_remision.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.numero_remision.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.tercero.id_for_label }}" class="form-label">Cliente</label>
+                            {{ form.tercero }}
+                            {% if form.tercero.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.tercero.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.direccion_entrega.id_for_label }}" class="form-label">Dirección de Entrega</label>
+                            {{ form.direccion_entrega }}
+                            {% if form.direccion_entrega.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.direccion_entrega.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
+                            {{ form.estado }}
+                            {% if form.estado.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.estado.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.observaciones.id_for_label }}" class="form-label">Observaciones</label>
+                    {{ form.observaciones }}
+                    {% if form.observaciones.errors %}
+                    <div class="invalid-feedback">
+                        {{ form.observaciones.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h4 class="mt-4">Productos</h4>
+                {{ formset.management_form }}
+                <div id="formset-container">
+                    {% for form in formset %}
+                    <div class="product-form mb-3 border p-3 rounded">
+                        {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Producto</label>
+                                    {{ form.producto }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Cantidad</label>
+                                    {{ form.cantidad }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Bodega Origen</label>
+                                    {{ form.bodega_origen }}
+                                </div>
+                            </div>
+                        </div>
+                        {% if form.instance.pk %}
+                        <button type="button" class="btn btn-danger btn-sm remove-form">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" id="add-form" class="btn btn-secondary mt-2">
+                    <i class="bi bi-plus-circle"></i> Agregar Producto
+                </button>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Guardar
+                    </button>
+                    <a href="{% url 'gestion:despacho_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.querySelector('#formset-container');
+    const addButton = document.querySelector('#add-form');
+    const totalForms = document.querySelector('#id_detalles-TOTAL_FORMS');
+    
+    let formCount = container.children.length;
+    
+    addButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const newForm = container.children[0].cloneNode(true);
+        const formRegex = RegExp(`detalles-(\\d+)-`, 'g');
+        
+        newForm.innerHTML = newForm.innerHTML.replace(formRegex, `detalles-${formCount}-`);
+        
+        // Limpiar valores
+        newForm.querySelectorAll('input, select').forEach(input => {
+            if (input.type !== 'hidden') {
+                input.value = '';
+            }
+        });
+        
+        container.appendChild(newForm);
+        formCount++;
+        totalForms.value = formCount;
+    });
+    
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-form')) {
+            e.target.closest('.product-form').style.display = 'none';
+            e.target.closest('.product-form').querySelector('input[type="checkbox"]').checked = true;
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

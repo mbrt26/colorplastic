@@ -682,18 +682,29 @@ def editar_produccion_lavado(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
             produccion.observaciones = request.POST.get('observaciones')
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_lavado')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Lavado', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_lavado.html', context)
+    return render(request, 'gestion/editar_produccion_lavado.html', context)
 
 @login_required
 @transaction.atomic
@@ -703,18 +714,30 @@ def editar_produccion_peletizado(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            produccion.numero_mezclas = request.POST.get('numero_mezclas') or produccion.numero_mezclas
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
             produccion.observaciones = request.POST.get('observaciones')
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_peletizado')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Peletizado', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_peletizado.html', context)
+    return render(request, 'gestion/editar_produccion_peletizado.html', context)
 
 @login_required
 @transaction.atomic
@@ -843,18 +866,33 @@ def editar_produccion_molido(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            if 'merma' in request.POST:
+                produccion.merma = Decimal(request.POST.get('merma', '0'))
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
             produccion.observaciones = request.POST.get('observaciones')
+            if 'archivo_adjunto' in request.FILES:
+                produccion.archivo_adjunto = request.FILES['archivo_adjunto']
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_molido')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Molido', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_molido.html', context)
+    return render(request, 'gestion/editar_produccion_molido.html', context)
 
 @login_required
 @transaction.atomic
@@ -864,18 +902,31 @@ def editar_produccion_inyeccion(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
+            if 'archivo_adjunto' in request.FILES:
+                produccion.archivo_adjunto = request.FILES['archivo_adjunto']
             produccion.observaciones = request.POST.get('observaciones')
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_inyeccion')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Inyeccion', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_inyeccion.html', context)
+    return render(request, 'gestion/editar_produccion_inyeccion.html', context)
 
 @login_required
 @transaction.atomic

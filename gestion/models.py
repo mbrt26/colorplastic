@@ -377,11 +377,15 @@ class ProduccionConsumo(models.Model):
     id_bodega_origen = models.ForeignKey(Bodegas, on_delete=models.PROTECT, verbose_name='Bodega Origen Consumo')
 
     def get_produccion_padre(self):
-        # Método helper para obtener la referencia a la producción padre
-        if self.id_produccion_molido: return self.id_produccion_molido
-        if self.id_produccion_lavado: return self.id_produccion_lavado
-        if self.id_produccion_peletizado: return self.id_produccion_peletizado
-        if self.id_produccion_inyeccion: return self.id_produccion_inyeccion
+        """Devuelve la producción padre sin lanzar errores si fue eliminada."""
+        if self.id_produccion_molido_id:
+            return ProduccionMolido.objects.filter(pk=self.id_produccion_molido_id).first()
+        if self.id_produccion_lavado_id:
+            return ProduccionLavado.objects.filter(pk=self.id_produccion_lavado_id).first()
+        if self.id_produccion_peletizado_id:
+            return ProduccionPeletizado.objects.filter(pk=self.id_produccion_peletizado_id).first()
+        if self.id_produccion_inyeccion_id:
+            return ProduccionInyeccion.objects.filter(pk=self.id_produccion_inyeccion_id).first()
         return None
 
     def save(self, *args, **kwargs):

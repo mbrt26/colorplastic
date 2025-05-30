@@ -86,9 +86,7 @@ urlpatterns = [
     # Inventario global
     path('inventario/global/', views.inventario_global, name='inventario_global'),
     
-    # Despacho form
-    path('despacho/form/', views.despacho_form, name='despacho_form'),
-    path('despachos/list/', views.despachos, name='despachos_list'),
+
     
     # API endpoints
     path('api/verificar-stock/<uuid:lote_id>/', views.verificar_stock_api, name='verificar_stock_api'),

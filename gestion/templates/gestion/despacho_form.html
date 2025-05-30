@@ -1,134 +1,294 @@
 {% extends 'gestion/base.html' %}
 {% load static %}
 
-{% block title %}{{ object.id|yesno:"Editar,Nuevo" }} Despacho{% endblock %}
+{% block title %}{{ object.id|yesno:"Editar,Nuevo" }} Despacho - ColorPlastic{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row mb-4">
-        <div class="col">
-            <h2>{{ object.id|yesno:"Editar,Nuevo" }} Despacho</h2>
-        </div>
+<div class="container fade-in-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-truck me-2"></i>
+            {{ object.id|yesno:"Editar,Nuevo" }} Despacho
+        </h2>
+        <a href="{% url 'gestion:despacho_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Lista
+        </a>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="row">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <!-- Información General del Despacho -->
+        <div class="card card-industrial mb-4">
+            <div class="card-header card-header-process">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Información General
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
                     <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="{{ form.numero_remision.id_for_label }}" class="form-label">Número de Remisión</label>
-                            {{ form.numero_remision }}
-                            {% if form.numero_remision.errors %}
-                            <div class="invalid-feedback">
-                                {{ form.numero_remision.errors }}
-                            </div>
-                            {% endif %}
+                        <label for="{{ form.numero_remision.id_for_label }}" class="form-label">
+                            <i class="bi bi-hash me-1"></i>Número de Remisión *
+                        </label>
+                        {{ form.numero_remision }}
+                        {% if form.numero_remision.errors %}
+                        <div class="text-danger small mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ form.numero_remision.errors.0 }}
                         </div>
+                        {% endif %}
                     </div>
+                    
                     <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="{{ form.tercero.id_for_label }}" class="form-label">Cliente</label>
-                            {{ form.tercero }}
-                            {% if form.tercero.errors %}
-                            <div class="invalid-feedback">
-                                {{ form.tercero.errors }}
-                            </div>
-                            {% endif %}
+                        <label for="{{ form.tercero.id_for_label }}" class="form-label">
+                            <i class="bi bi-person-circle me-1"></i>Cliente *
+                        </label>
+                        {{ form.tercero }}
+                        {% if form.tercero.errors %}
+                        <div class="text-danger small mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ form.tercero.errors.0 }}
                         </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <label for="{{ form.direccion_entrega.id_for_label }}" class="form-label">
+                            <i class="bi bi-geo-alt me-1"></i>Dirección de Entrega *
+                        </label>
+                        {{ form.direccion_entrega }}
+                        {% if form.direccion_entrega.errors %}
+                        <div class="text-danger small mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ form.direccion_entrega.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="{{ form.estado.id_for_label }}" class="form-label">
+                            <i class="bi bi-flag me-1"></i>Estado
+                        </label>
+                        {{ form.estado }}
+                        {% if form.estado.errors %}
+                        <div class="text-danger small mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ form.estado.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-12">
+                        <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                            <i class="bi bi-chat-left-text me-1"></i>Observaciones
+                        </label>
+                        {{ form.observaciones }}
+                        {% if form.observaciones.errors %}
+                        <div class="text-danger small mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ form.observaciones.errors.0 }}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Información adicional sobre el despacho</div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="{{ form.direccion_entrega.id_for_label }}" class="form-label">Dirección de Entrega</label>
-                            {{ form.direccion_entrega }}
-                            {% if form.direccion_entrega.errors %}
-                            <div class="invalid-feedback">
-                                {{ form.direccion_entrega.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
-                            {{ form.estado }}
-                            {% if form.estado.errors %}
-                            <div class="invalid-feedback">
-                                {{ form.estado.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="{{ form.observaciones.id_for_label }}" class="form-label">Observaciones</label>
-                    {{ form.observaciones }}
-                    {% if form.observaciones.errors %}
-                    <div class="invalid-feedback">
-                        {{ form.observaciones.errors }}
-                    </div>
-                    {% endif %}
-                </div>
-
-                <h4 class="mt-4">Productos</h4>
+        <!-- Productos del Despacho -->
+        <div class="card card-industrial mb-4">
+            <div class="card-header card-header-inventory d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-box-seam me-2"></i>Productos a Despachar
+                </h5>
+                <button type="button" id="add-form" class="btn btn-cp-primary btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>Agregar Producto
+                </button>
+            </div>
+            <div class="card-body">
                 {{ formset.management_form }}
+                
+                {% if formset.non_form_errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {{ formset.non_form_errors }}
+                </div>
+                {% endif %}
+                
                 <div id="formset-container">
                     {% for form in formset %}
-                    <div class="product-form mb-3 border p-3 rounded">
+                    <div class="product-form mb-3 p-3 border rounded bg-light position-relative">
                         {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
-                        <div class="row">
+                        
+                        {% if form.instance.pk %}
+                        <div class="position-absolute top-0 end-0 mt-2 me-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-form" title="Eliminar producto">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row g-3">
                             <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Producto</label>
-                                    {{ form.producto }}
+                                <label class="form-label">
+                                    <i class="bi bi-box me-1"></i>Producto *
+                                </label>
+                                {{ form.producto }}
+                                {% if form.producto.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.producto.errors.0 }}
                                 </div>
+                                {% endif %}
                             </div>
+                            
                             <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Cantidad</label>
-                                    {{ form.cantidad }}
+                                <label class="form-label">
+                                    <i class="bi bi-123 me-1"></i>Cantidad (kg) *
+                                </label>
+                                {{ form.cantidad }}
+                                {% if form.cantidad.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.cantidad.errors.0 }}
                                 </div>
+                                {% endif %}
                             </div>
+                            
                             <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Bodega Origen</label>
-                                    {{ form.bodega_origen }}
+                                <label class="form-label">
+                                    <i class="bi bi-building me-1"></i>Bodega Origen *
+                                </label>
+                                {{ form.bodega_origen }}
+                                {% if form.bodega_origen.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.bodega_origen.errors.0 }}
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
-                        {% if form.instance.pk %}
-                        <button type="button" class="btn btn-danger btn-sm remove-form">
-                            <i class="bi bi-trash"></i> Eliminar
-                        </button>
+                        
+                        {% if not form.instance.pk %}
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-form">
+                                <i class="bi bi-trash me-1"></i>Eliminar
+                            </button>
+                        </div>
                         {% endif %}
                     </div>
                     {% endfor %}
                 </div>
-
-                <button type="button" id="add-form" class="btn btn-secondary mt-2">
-                    <i class="bi bi-plus-circle"></i> Agregar Producto
-                </button>
-
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Guardar
-                    </button>
-                    <a href="{% url 'gestion:despacho_list' %}" class="btn btn-secondary">
-                        <i class="bi bi-x-circle"></i> Cancelar
-                    </a>
+                
+                <div class="text-muted small mt-2">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Debe incluir al menos un producto en el despacho
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <!-- Botones de Acción -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{% url 'gestion:despacho_list' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-x-circle me-2"></i>Cancelar
+            </a>
+            
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-check-circle me-2"></i>
+                {{ object.id|yesno:"Actualizar,Crear" }} Despacho
+            </button>
+        </div>
+    </form>
 </div>
 
-{% block extra_js %}
+<style>
+.product-form {
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef !important;
+}
+
+.product-form:hover {
+    border-color: var(--cp-primary) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--cp-primary);
+    box-shadow: 0 0 0 0.2rem rgba(46, 139, 87, 0.25);
+}
+
+.btn-cp-primary {
+    background: linear-gradient(135deg, var(--cp-primary), #3CB371) !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease;
+}
+
+.btn-cp-primary:hover {
+    background: linear-gradient(135deg, #228B22, var(--cp-primary)) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    color: white !important;
+}
+
+.card-header-process {
+    background: linear-gradient(135deg, #FF6B35, #F7931E);
+    color: white;
+}
+
+.card-header-inventory {
+    background: linear-gradient(135deg, #2E8B57, #3CB371);
+    color: white;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+/* Asegurar que los botones sean siempre visibles */
+.btn {
+    min-height: 48px;
+    font-weight: 600;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997) !important;
+    border: none !important;
+    color: white !important;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #218838, #1e9a6b) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    color: white !important;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.querySelector('#formset-container');
@@ -137,33 +297,150 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let formCount = container.children.length;
     
+    // Función para actualizar los índices de los formularios
+    function updateFormIndices() {
+        const forms = container.querySelectorAll('.product-form');
+        forms.forEach((form, index) => {
+            const formRegex = /detalles-\d+-/g;
+            form.innerHTML = form.innerHTML.replace(formRegex, `detalles-${index}-`);
+        });
+        totalForms.value = forms.length;
+    }
+    
+    // Agregar nuevo formulario
     addButton.addEventListener('click', function(e) {
         e.preventDefault();
         
-        const newForm = container.children[0].cloneNode(true);
-        const formRegex = RegExp(`detalles-(\\d+)-`, 'g');
-        
-        newForm.innerHTML = newForm.innerHTML.replace(formRegex, `detalles-${formCount}-`);
-        
-        // Limpiar valores
-        newForm.querySelectorAll('input, select').forEach(input => {
-            if (input.type !== 'hidden') {
-                input.value = '';
+        if (container.children.length === 0) {
+            // Si no hay formularios, crear uno desde cero
+            const newFormHtml = `
+                <div class="product-form mb-3 p-3 border rounded bg-light position-relative">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <i class="bi bi-box me-1"></i>Producto *
+                            </label>
+                            <select name="detalles-${formCount}-producto" class="form-select" required>
+                                <option value="">Seleccionar producto...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <i class="bi bi-123 me-1"></i>Cantidad (kg) *
+                            </label>
+                            <input type="number" name="detalles-${formCount}-cantidad" class="form-control" step="0.01" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <i class="bi bi-building me-1"></i>Bodega Origen *
+                            </label>
+                            <select name="detalles-${formCount}-bodega_origen" class="form-select" required>
+                                <option value="">Seleccionar bodega...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-form">
+                            <i class="bi bi-trash me-1"></i>Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', newFormHtml);
+        } else {
+            // Clonar el primer formulario existente
+            const templateForm = container.children[0];
+            const newForm = templateForm.cloneNode(true);
+            
+            // Limpiar valores del formulario clonado
+            newForm.querySelectorAll('input, select, textarea').forEach(input => {
+                if (input.type !== 'hidden' && input.name !== 'csrfmiddlewaretoken') {
+                    input.value = '';
+                    input.checked = false;
+                }
+            });
+            
+            // Remover el botón de eliminar si existe para formularios existentes
+            const deleteBtn = newForm.querySelector('input[type="checkbox"]');
+            if (deleteBtn) {
+                deleteBtn.parentElement.remove();
             }
-        });
+            
+            // Asegurarse de que tenga el botón de eliminar
+            if (!newForm.querySelector('.remove-form')) {
+                const buttonContainer = newForm.querySelector('.mt-2') || document.createElement('div');
+                buttonContainer.className = 'mt-2';
+                buttonContainer.innerHTML = `
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-form">
+                        <i class="bi bi-trash me-1"></i>Eliminar
+                    </button>
+                `;
+                newForm.appendChild(buttonContainer);
+            }
+            
+            container.appendChild(newForm);
+        }
         
-        container.appendChild(newForm);
         formCount++;
-        totalForms.value = formCount;
+        updateFormIndices();
+        
+        // Animar la aparición del nuevo formulario
+        const newForm = container.lastElementChild;
+        newForm.style.opacity = '0';
+        newForm.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            newForm.style.transition = 'all 0.3s ease';
+            newForm.style.opacity = '1';
+            newForm.style.transform = 'translateY(0)';
+        }, 10);
     });
     
+    // Eliminar formulario
     container.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-form')) {
-            e.target.closest('.product-form').style.display = 'none';
-            e.target.closest('.product-form').querySelector('input[type="checkbox"]').checked = true;
+        if (e.target.classList.contains('remove-form') || e.target.closest('.remove-form')) {
+            e.preventDefault();
+            const form = e.target.closest('.product-form');
+            
+            // Si es un formulario existente (tiene checkbox DELETE)
+            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteCheckbox) {
+                form.style.display = 'none';
+                deleteCheckbox.checked = true;
+            } else {
+                // Si es un formulario nuevo, simplemente removerlo
+                form.style.transition = 'all 0.3s ease';
+                form.style.opacity = '0';
+                form.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    form.remove();
+                    updateFormIndices();
+                }, 300);
+            }
         }
+    });
+    
+    // Validación en tiempo real
+    container.addEventListener('input', function(e) {
+        if (e.target.type === 'number') {
+            const value = parseFloat(e.target.value);
+            if (value <= 0) {
+                e.target.classList.add('is-invalid');
+            } else {
+                e.target.classList.remove('is-invalid');
+            }
+        }
+    });
+    
+    // Actualizar estilos de los campos requeridos
+    document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+        field.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
     });
 });
 </script>
-{% endblock %}
 {% endblock %}

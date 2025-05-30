@@ -29,7 +29,33 @@ class DespachoForm(forms.ModelForm):
         model = Despacho
         fields = ['numero_remision', 'tercero', 'direccion_entrega', 'estado', 'observaciones']
         widgets = {
-            'observaciones': forms.Textarea(attrs={'rows': 3}),
+            'numero_remision': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: REM-2025-001'
+            }),
+            'tercero': forms.Select(attrs={
+                'class': 'form-select',
+                'data-placeholder': 'Seleccionar cliente...'
+            }),
+            'direccion_entrega': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Dirección completa de entrega'
+            }),
+            'estado': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Observaciones adicionales sobre el despacho...'
+            }),
+        }
+        labels = {
+            'numero_remision': 'Número de Remisión',
+            'tercero': 'Cliente',
+            'direccion_entrega': 'Dirección de Entrega',
+            'estado': 'Estado',
+            'observaciones': 'Observaciones',
         }
 
 class DetalleDespachoFormSet(forms.BaseInlineFormSet):
@@ -53,6 +79,22 @@ DetalleDespachoFormSet = forms.inlineformset_factory(
     extra=1,
     can_delete=True,
     formset=DetalleDespachoFormSet,
+    widgets={
+        'producto': forms.Select(attrs={
+            'class': 'form-select',
+            'data-placeholder': 'Seleccionar producto...'
+        }),
+        'cantidad': forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01',
+            'min': '0.01',
+            'placeholder': '0.00'
+        }),
+        'bodega_origen': forms.Select(attrs={
+            'class': 'form-select',
+            'data-placeholder': 'Seleccionar bodega...'
+        }),
+    }
 )
 
 class DespachoListView(LoginRequiredMixin, ListView):

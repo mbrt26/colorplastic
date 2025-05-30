@@ -1,250 +1,456 @@
 {% extends 'gestion/base.html' %}
+{% load static %}
 
-{% block title %}Gestión de Lotes{% endblock %}
+{% block title %}Gestión de Lotes - ColorPlastic{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">Gestión de Lotes</h1>
-    
-    <!-- Botón para abrir modal de nuevo lote -->
-    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevoLoteModal">
-        <i class="bi bi-plus-circle"></i> Nuevo Lote
-    </button>
-    
+<div class="container fade-in-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-archive me-2"></i>Gestión de Lotes</h2>
+        <button class="btn btn-cp-primary" data-bs-toggle="modal" data-bs-target="#nuevoLoteModal">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Lote
+        </button>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="card card-industrial mb-4">
+        <div class="card-header card-header-inventory">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-funnel me-2"></i>Filtros y Búsqueda
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Buscar Lote</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchLotes" 
+                               placeholder="Número de lote, material, bodega...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Material</label>
+                    <select class="form-select" id="filterMaterial">
+                        <option value="">Todos los materiales</option>
+                        {% for material in materiales %}
+                        <option value="{{ material.nombre }}">{{ material.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Bodega</label>
+                    <select class="form-select" id="filterBodega">
+                        <option value="">Todas las bodegas</option>
+                        {% for bodega in bodegas %}
+                        <option value="{{ bodega.nombre }}">{{ bodega.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" id="filterEstado">
+                        <option value="">Todos</option>
+                        <option value="activo">Activos</option>
+                        <option value="agotado">Agotados</option>
+                        <option value="vencido">Vencidos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ lotes|length }}</div>
+                        <div class="stat-label">Total Lotes</div>
+                    </div>
+                    <i class="bi bi-box process-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number" id="stockTotal">-</div>
+                        <div class="stat-label">Stock Total (kg)</div>
+                    </div>
+                    <i class="bi bi-speedometer2 process-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number text-warning" id="lotesProximoVencer">-</div>
+                        <div class="stat-label">Próximos a Vencer</div>
+                    </div>
+                    <i class="bi bi-clock-history process-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number text-danger" id="lotesAgotados">-</div>
+                        <div class="stat-label">Stock Bajo</div>
+                    </div>
+                    <i class="bi bi-exclamation-triangle process-icon text-danger"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabla de Lotes -->
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Número de Lote</th>
-                    <th>Material</th>
-                    <th>Cantidad Actual</th>
-                    <th>Bodega Actual</th>
-                    <th>Fecha Creación</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lote in lotes %}
-                <tr>
-                    <td>{{ lote.numero_lote }}</td>
-                    <td>{{ lote.id_material.nombre }}</td>
-                    <td>{{ lote.cantidad_actual }} {{ lote.unidad_medida }}</td>
-                    <td>{{ lote.id_bodega_actual.nombre }}</td>
-                    <td>{{ lote.fecha_creacion|date:"Y-m-d H:i" }}</td>
-                    <td>
-                        <span class="badge {% if lote.activo %}bg-success{% else %}bg-danger{% endif %}">
-                            {{ lote.activo|yesno:"Activo,Inactivo" }}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
-                                    data-bs-target="#editarLoteModal{{ lote.pk }}">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" 
-                                    data-bs-target="#eliminarLoteModal{{ lote.pk }}">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center">No hay lotes registrados</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Modal Nuevo Lote -->
-    <div class="modal fade" id="nuevoLoteModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Nuevo Lote</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="numero_lote" class="form-label">Número de Lote</label>
-                            <input type="text" class="form-control" id="numero_lote" name="numero_lote" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="id_material" class="form-label">Material</label>
-                            <select class="form-select" id="id_material" name="id_material" required>
-                                <option value="">Seleccione un material</option>
-                                {% for material in materiales %}
-                                <option value="{{ material.pk }}">{{ material.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="cantidad_inicial" class="form-label">Cantidad Inicial</label>
-                            <input type="number" step="0.01" class="form-control" id="cantidad_inicial" name="cantidad_inicial" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="unidad_medida" class="form-label">Unidad de Medida</label>
-                            <select class="form-select" id="unidad_medida" name="unidad_medida" required>
-                                <option value="kg">Kilogramos</option>
-                                <option value="unidad">Unidades</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="id_bodega" class="form-label">Bodega</label>
-                            <select class="form-select" id="id_bodega" name="id_bodega" required>
-                                <option value="">Seleccione una bodega</option>
-                                {% for bodega in bodegas %}
-                                <option value="{{ bodega.pk }}">{{ bodega.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="clasificacion" class="form-label">Clasificación</label>
-                            <select class="form-select" id="clasificacion" name="clasificacion">
-                                <option value="">Sin clasificación</option>
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="proveedor" class="form-label">Proveedor</label>
-                            <select class="form-select" id="proveedor" name="proveedor">
-                                <option value="">Seleccione un proveedor</option>
-                                {% for proveedor in proveedores %}
-                                <option value="{{ proveedor.pk }}">{{ proveedor.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="fecha_vencimiento" class="form-label">Fecha de Vencimiento</label>
-                            <input type="date" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento">
-                        </div>
-                        <div class="mb-3">
-                            <label for="costo_unitario" class="form-label">Costo Unitario</label>
-                            <input type="number" step="0.01" class="form-control" id="costo_unitario" name="costo_unitario">
-                        </div>
-                        <div class="mb-3">
-                            <label for="observaciones" class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                    </div>
-                </form>
+    <div class="card card-industrial">
+        <div class="card-header card-header-process">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>Listado de Lotes
+                <span class="badge bg-light text-dark ms-2" id="countVisible">{{ lotes|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-colorplastic mb-0" id="lotesTable">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="d-flex align-items-center">
+                                    Número de Lote
+                                    <i class="bi bi-chevron-expand ms-1 text-muted" style="cursor: pointer;" 
+                                       onclick="sortTable(0)"></i>
+                                </div>
+                            </th>
+                            <th>Material</th>
+                            <th>Stock Actual</th>
+                            <th>Bodega</th>
+                            <th>Estado</th>
+                            <th>Fecha Vencimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lote in lotes %}
+                        <tr data-material="{{ lote.id_material.nombre }}" 
+                            data-bodega="{{ lote.id_bodega_actual.nombre }}"
+                            data-stock="{{ lote.stock_actual }}"
+                            data-vencimiento="{{ lote.fecha_vencimiento|date:'Y-m-d' }}">
+                            <td>
+                                <strong>{{ lote.numero_lote }}</strong>
+                                {% if lote.clasificacion %}
+                                <br><small class="text-muted">{{ lote.clasificacion }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ lote.id_material.tipo }}</span>
+                                <br>{{ lote.id_material.nombre }}
+                            </td>
+                            <td>
+                                <span class="fw-bold 
+                                    {% if lote.stock_actual <= 10 %}text-danger
+                                    {% elif lote.stock_actual <= 50 %}text-warning
+                                    {% else %}text-success{% endif %}">
+                                    {{ lote.stock_actual|floatformat:1 }} kg
+                                </span>
+                            </td>
+                            <td>
+                                <i class="bi bi-building text-primary me-1"></i>
+                                {{ lote.id_bodega_actual.nombre }}
+                            </td>
+                            <td>
+                                {% if lote.stock_actual <= 0 %}
+                                    <span class="status-badge status-stopped">Agotado</span>
+                                {% elif lote.fecha_vencimiento and lote.fecha_vencimiento <= today %}
+                                    <span class="status-badge status-stopped">Vencido</span>
+                                {% elif lote.stock_actual <= 10 %}
+                                    <span class="status-badge status-paused">Stock Bajo</span>
+                                {% else %}
+                                    <span class="status-badge status-active">Activo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lote.fecha_vencimiento %}
+                                    <span class="{% if lote.fecha_vencimiento <= today %}text-danger
+                                                 {% elif lote.fecha_vencimiento <= week_from_now %}text-warning
+                                                 {% endif %}">
+                                        {{ lote.fecha_vencimiento|date:"d/m/Y" }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'gestion:inventario_bodega' lote.id_bodega_actual.id_bodega %}" 
+                                       class="btn btn-outline-primary" title="Ver en bodega">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'gestion:editar_lote' lote.id_lote %}" 
+                                       class="btn btn-outline-secondary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'gestion:despacho_form' %}?lote={{ lote.id_lote }}" 
+                                       class="btn btn-outline-success" title="Despachar">
+                                        <i class="bi bi-truck"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger" 
+                                            data-confirm="¿Eliminar el lote {{ lote.numero_lote }}?"
+                                            onclick="eliminarLote({{ lote.id_lote }})" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox me-2"></i>No hay lotes registrados
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modales de Edición -->
-    {% for lote in lotes %}
-    <div class="modal fade" id="editarLoteModal{{ lote.pk }}" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Editar Lote</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post" action="{% url 'gestion:editar_lote' lote.pk %}">
-                    {% csrf_token %}
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="numero_lote{{ lote.pk }}" class="form-label">Número de Lote</label>
-                            <input type="text" class="form-control" id="numero_lote{{ lote.pk }}" name="numero_lote" value="{{ lote.numero_lote }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="id_material{{ lote.pk }}" class="form-label">Material</label>
-                            <select class="form-select" id="id_material{{ lote.pk }}" name="id_material" required>
-                                {% for material in materiales %}
-                                <option value="{{ material.pk }}" {% if material.pk == lote.id_material.pk %}selected{% endif %}>
-                                    {{ material.nombre }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="id_bodega{{ lote.pk }}" class="form-label">Bodega</label>
-                            <select class="form-select" id="id_bodega{{ lote.pk }}" name="id_bodega" required>
-                                {% for bodega in bodegas %}
-                                <option value="{{ bodega.pk }}" {% if bodega.pk == lote.id_bodega_actual.pk %}selected{% endif %}>
-                                    {{ bodega.nombre }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="clasificacion{{ lote.pk }}" class="form-label">Clasificación</label>
-                            <select class="form-select" id="clasificacion{{ lote.pk }}" name="clasificacion">
-                                <option value="">Sin clasificación</option>
-                                <option value="A" {% if lote.clasificacion == 'A' %}selected{% endif %}>A</option>
-                                <option value="B" {% if lote.clasificacion == 'B' %}selected{% endif %}>B</option>
-                                <option value="C" {% if lote.clasificacion == 'C' %}selected{% endif %}>C</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="proveedor{{ lote.pk }}" class="form-label">Proveedor</label>
-                            <select class="form-select" id="proveedor{{ lote.pk }}" name="proveedor">
-                                <option value="">Seleccione un proveedor</option>
-                                {% for proveedor in proveedores %}
-                                <option value="{{ proveedor.pk }}" {% if proveedor.pk == lote.proveedor_origen.pk %}selected{% endif %}>
-                                    {{ proveedor.nombre }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="fecha_vencimiento{{ lote.pk }}" class="form-label">Fecha de Vencimiento</label>
-                            <input type="date" class="form-control" id="fecha_vencimiento{{ lote.pk }}" name="fecha_vencimiento" 
-                                   value="{{ lote.fecha_vencimiento|date:'Y-m-d' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="costo_unitario{{ lote.pk }}" class="form-label">Costo Unitario</label>
-                            <input type="number" step="0.01" class="form-control" id="costo_unitario{{ lote.pk }}" name="costo_unitario" 
-                                   value="{{ lote.costo_unitario }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="observaciones{{ lote.pk }}" class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="observaciones{{ lote.pk }}" name="observaciones" rows="3">{{ lote.observaciones }}</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
-                    </div>
-                </form>
+<!-- Modal Nuevo Lote -->
+<div class="modal fade" id="nuevoLoteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>Nuevo Lote
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal de Eliminación -->
-    <div class="modal fade" id="eliminarLoteModal{{ lote.pk }}" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirmar Eliminación</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+            <form method="post" action="{% url 'gestion:lotes' %}" data-validate>
+                {% csrf_token %}
                 <div class="modal-body">
-                    <p>¿Está seguro de que desea eliminar el lote {{ lote.numero_lote }}?</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="numero_lote" class="form-label">Número de Lote *</label>
+                                <input type="text" class="form-control" id="numero_lote" name="numero_lote" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_material" class="form-label">Material *</label>
+                                <select class="form-select" id="id_material" name="id_material" required>
+                                    <option value="">Seleccionar material</option>
+                                    {% for material in materiales %}
+                                    <option value="{{ material.id_material }}">{{ material.nombre }} ({{ material.tipo }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stock_inicial" class="form-label">Stock Inicial (kg) *</label>
+                                <input type="number" class="form-control" id="stock_inicial" name="stock_inicial" 
+                                       step="0.1" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_bodega" class="form-label">Bodega *</label>
+                                <select class="form-select" id="id_bodega" name="id_bodega" required>
+                                    <option value="">Seleccionar bodega</option>
+                                    {% for bodega in bodegas %}
+                                    <option value="{{ bodega.id_bodega }}">{{ bodega.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="fecha_vencimiento" class="form-label">Fecha de Vencimiento</label>
+                                <input type="date" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="costo_unitario" class="form-label">Costo Unitario</label>
+                                <input type="number" class="form-control" id="costo_unitario" name="costo_unitario" 
+                                       step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <form method="post" action="{% url 'gestion:eliminar_lote' lote.pk %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger">Eliminar</button>
-                    </form>
+                    <button type="submit" class="btn btn-cp-primary">
+                        <i class="bi bi-check-circle me-2"></i>Crear Lote
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
-    {% endfor %}
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/colorplastic-ux.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar filtros
+    setupLotesFilter();
+    calculateStats();
+    
+    function setupLotesFilter() {
+        const searchInput = document.getElementById('searchLotes');
+        const materialFilter = document.getElementById('filterMaterial');
+        const bodegaFilter = document.getElementById('filterBodega');
+        const estadoFilter = document.getElementById('filterEstado');
+        
+        [searchInput, materialFilter, bodegaFilter, estadoFilter].forEach(filter => {
+            filter.addEventListener('input', filterTable);
+        });
+    }
+    
+    function filterTable() {
+        const searchTerm = document.getElementById('searchLotes').value.toLowerCase();
+        const materialFilter = document.getElementById('filterMaterial').value;
+        const bodegaFilter = document.getElementById('filterBodega').value;
+        const estadoFilter = document.getElementById('filterEstado').value;
+        
+        const rows = document.querySelectorAll('#lotesTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const material = row.dataset.material || '';
+            const bodega = row.dataset.bodega || '';
+            const stock = parseFloat(row.dataset.stock || 0);
+            const vencimiento = row.dataset.vencimiento;
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Determinar estado
+            let estado = 'activo';
+            if (stock <= 0) estado = 'agotado';
+            else if (vencimiento && vencimiento <= today) estado = 'vencido';
+            
+            // Aplicar filtros
+            const matchesSearch = row.textContent.toLowerCase().includes(searchTerm);
+            const matchesMaterial = !materialFilter || material === materialFilter;
+            const matchesBodega = !bodegaFilter || bodega === bodegaFilter;
+            const matchesEstado = !estadoFilter || estado === estadoFilter;
+            
+            if (matchesSearch && matchesMaterial && matchesBodega && matchesEstado) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('countVisible').textContent = visibleCount;
+    }
+    
+    function calculateStats() {
+        const rows = document.querySelectorAll('#lotesTable tbody tr[data-stock]');
+        let totalStock = 0;
+        let proximoVencer = 0;
+        let stockBajo = 0;
+        
+        const today = new Date();
+        const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        rows.forEach(row => {
+            const stock = parseFloat(row.dataset.stock || 0);
+            const vencimiento = row.dataset.vencimiento;
+            
+            totalStock += stock;
+            
+            if (stock <= 10 && stock > 0) stockBajo++;
+            
+            if (vencimiento) {
+                const fechaVenc = new Date(vencimiento);
+                if (fechaVenc <= weekFromNow && fechaVenc > today) {
+                    proximoVencer++;
+                }
+            }
+        });
+        
+        document.getElementById('stockTotal').textContent = totalStock.toLocaleString('es-CO', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        });
+        document.getElementById('lotesProximoVencer').textContent = proximoVencer;
+        document.getElementById('lotesAgotados').textContent = stockBajo;
+    }
+});
+
+function sortTable(columnIndex) {
+    const table = document.getElementById('lotesTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
+    
+    // Determinar dirección de orden
+    const currentSort = table.dataset.sortColumn;
+    const currentDir = table.dataset.sortDirection || 'asc';
+    const newDir = (currentSort == columnIndex && currentDir === 'asc') ? 'desc' : 'asc';
+    
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+        
+        // Intentar conversión numérica
+        const aNum = parseFloat(aValue.replace(/[^\d.-]/g, ''));
+        const bNum = parseFloat(bValue.replace(/[^\d.-]/g, ''));
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return newDir === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+        
+        return newDir === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+    });
+    
+    // Reordenar filas
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Guardar estado
+    table.dataset.sortColumn = columnIndex;
+    table.dataset.sortDirection = newDir;
+}
+
+function eliminarLote(loteId) {
+    // Esta función sería implementada con AJAX
+    fetch(`/lotes/${loteId}/eliminar/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            ColorPlastic.showToast('Lote eliminado exitosamente', 'success');
+            location.reload();
+        } else {
+            ColorPlastic.showToast('Error al eliminar el lote', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        ColorPlastic.showToast('Error de conexión', 'danger');
+    });
+}
+</script>
 {% endblock %}

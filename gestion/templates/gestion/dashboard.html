@@ -1,223 +1,287 @@
 {% extends 'gestion/base.html' %}
+{% load static %}
 
 {% block title %}Dashboard - ColorPlastic{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Resumen de Inventario -->
+<div class="container fade-in-up">
+    <!-- KPIs Principales -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total de Lotes</h5>
-                    <p class="card-text display-4">{{ total_lotes }}</p>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_lotes }}</div>
+                        <div class="stat-label">Lotes Activos</div>
+                    </div>
+                    <i class="bi bi-boxes process-icon"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Stock Total</h5>
-                    <p class="card-text display-4">{{ total_stock }} kg</p>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_stock }}<small>kg</small></div>
+                        <div class="stat-label">Stock Total</div>
+                    </div>
+                    <i class="bi bi-speedometer2 process-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ bodegas|length }}</div>
+                        <div class="stat-label">Bodegas</div>
+                    </div>
+                    <i class="bi bi-building process-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ movimientos_recientes|length }}</div>
+                        <div class="stat-label">Mov. Hoy</div>
+                    </div>
+                    <i class="bi bi-arrow-repeat process-icon"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Portal de Enlaces -->
-    <div class="row">
-        <!-- Inventario y Bodegas -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Inventario y Bodegas</h5>
-                </div>
-                <div class="card-body">
-                    <div class="list-group">
-                        {% for bodega in bodegas %}
-                        <a href="{% url 'gestion:inventario_bodega' bodega.id_bodega %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-box-seam"></i> Bodega: {{ bodega.nombre }}
-                        </a>
-                        {% endfor %}
-                        <a href="{% url 'gestion:traslado_form' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-arrow-left-right"></i> Realizar Traslado
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <!-- Accesos Rápidos Reorganizados -->
+    <div class="row mb-4">
         <!-- Producción -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">Producción</h5>
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-production">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear-fill me-2"></i>Producción
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group">
-                        <a href="{% url 'gestion:produccion_dashboard' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-grid-3x3-gap"></i> Dashboard de Producción
-                        </a>
-                        <a href="{% url 'gestion:produccion_consumo' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-cart-dash"></i> Consumos de Producción
-                        </a>
-                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-plus-circle"></i> Nuevo Proceso de Molido
-                        </a>
-                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'lavado' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-plus-circle"></i> Nuevo Proceso de Lavado
-                        </a>
-                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'peletizado' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-plus-circle"></i> Nuevo Proceso de Peletizado
-                        </a>
-                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-plus-circle"></i> Nuevo Proceso de Inyección
-                        </a>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <a href="{% url 'gestion:produccion_dashboard' %}" class="btn btn-cp-primary w-100 mb-2">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard de Producción
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="bi bi-plus-circle me-1"></i>Molido
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:nuevo_proceso_produccion' 'lavado' %}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="bi bi-plus-circle me-1"></i>Lavado
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:nuevo_proceso_produccion' 'peletizado' %}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="bi bi-plus-circle me-1"></i>Peletizado
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="bi bi-plus-circle me-1"></i>Inyección
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Monitoreo -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">Monitoreo</h5>
+        <!-- Inventario -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-inventory">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-box-seam me-2"></i>Inventario & Logística
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group">
-                        <a href="{% url 'gestion:residuos_produccion' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-trash"></i> Residuos de Producción
-                        </a>
-                        <a href="{% url 'gestion:produccion_molido' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-recycle"></i> Producción Molido
-                        </a>
-                        <a href="{% url 'gestion:produccion_lavado' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-water"></i> Producción Lavado
-                        </a>
-                        <a href="{% url 'gestion:produccion_peletizado' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-gear"></i> Producción Peletizado
-                        </a>
-                        <a href="{% url 'gestion:produccion_inyeccion' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-tools"></i> Producción Inyección
-                        </a>
-                    </div>
+                    {% for bodega in bodegas|slice:":3" %}
+                    <a href="{% url 'gestion:inventario_bodega' bodega.id_bodega %}" 
+                       class="list-group-item list-group-item-action border-0 rounded mb-2">
+                        <i class="bi bi-building text-primary me-2"></i>{{ bodega.nombre }}
+                    </a>
+                    {% endfor %}
+                    <hr>
+                    <a href="{% url 'gestion:traslado_form' %}" class="btn btn-cp-primary w-100 mb-2">
+                        <i class="bi bi-arrow-left-right me-2"></i>Realizar Traslado
+                    </a>
+                    <a href="{% url 'gestion:inventario_global' %}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-globe me-2"></i>Ver Todo el Inventario
+                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Administración -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="card-title mb-0">Administración</h5>
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear me-2"></i>Administración
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group">
-                        <a href="{% url 'gestion:lotes' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-box"></i> Gestión de Lotes
-                        </a>
-                        <a href="{% url 'gestion:maquinas' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-gear-fill"></i> Gestión de Máquinas
-                        </a>
-                        <a href="{% url 'gestion:materiales' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-bucket"></i> Gestión de Materiales
-                        </a>
-                        <a href="{% url 'gestion:operarios' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-person-badge"></i> Gestión de Operarios
-                        </a>
-                        <a href="{% url 'gestion:terceros' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-building"></i> Gestión de Terceros
-                        </a>
-                        <a href="{% url 'gestion:bodegas' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-house-door"></i> Gestión de Bodegas
-                        </a>
-                        <a href="{% url 'gestion:motivos_paro' %}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-list"></i> Gestión de Motivos de Paros
-                        </a>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'gestion:lotes' %}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-box me-1"></i>Lotes
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:materiales' %}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-layers me-1"></i>Materiales
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:maquinas' %}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-cpu me-1"></i>Máquinas
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:operarios' %}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-people me-1"></i>Operarios
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:terceros' %}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-building me-1"></i>Terceros
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'gestion:bodegas' %}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-house-door me-1"></i>Bodegas
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Movimientos Recientes -->
-    <div class="card mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="card-title mb-0">Movimientos Recientes</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Tipo</th>
-                            <th>Lote</th>
-                            <th>Cantidad</th>
-                            <th>Origen</th>
-                            <th>Destino</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for movimiento in movimientos_recientes %}
-                        <tr>
-                            <td>{{ movimiento.fecha|date:"Y-m-d H:i" }}</td>
-                            <td>{{ movimiento.tipo_movimiento }}</td>
-                            <td>{{ movimiento.id_lote.numero_lote }}</td>
-                            <td>{{ movimiento.cantidad }}</td>
-                            <td>{{ movimiento.id_bodega_origen.nombre|default:"-" }}</td>
-                            <td>{{ movimiento.id_bodega_destino.nombre|default:"-" }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">No hay movimientos recientes</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Alertas y Estado del Sistema -->
+    {% if paros_recientes %}
+    <div class="alert alert-warning border-0 rounded-3 mb-4" role="alert">
+        <h6 class="alert-heading mb-2">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Atención: Paros Activos
+        </h6>
+        <p class="mb-0">Se detectaron {{ paros_recientes|length }} paros recientes en producción. 
+        <a href="{% url 'gestion:produccion_dashboard' %}" class="alert-link">Ver detalles</a></p>
+    </div>
+    {% endif %}
+
+    <!-- Tablas de Actividad Reciente -->
+    <div class="row">
+        <!-- Movimientos Recientes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial">
+                <div class="card-header card-header-inventory">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Movimientos Recientes
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Lote</th>
+                                    <th>Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movimiento in movimientos_recientes|slice:":5" %}
+                                <tr>
+                                    <td><small>{{ movimiento.fecha|date:"m/d H:i" }}</small></td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if movimiento.tipo_movimiento == 'Entrada' %}bg-success
+                                            {% elif movimiento.tipo_movimiento == 'Salida' %}bg-danger
+                                            {% else %}bg-info{% endif %}">
+                                            {{ movimiento.tipo_movimiento }}
+                                        </span>
+                                    </td>
+                                    <td><small>{{ movimiento.id_lote.numero_lote|truncatechars:10 }}</small></td>
+                                    <td><strong>{{ movimiento.cantidad }}</strong></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        <i class="bi bi-inbox me-2"></i>No hay movimientos recientes
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Paros Recientes -->
-    <div class="card mb-4">
-        <div class="card-header bg-danger text-white">
-            <h5 class="card-title mb-0">Paros Recientes</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Fecha Inicio</th>
-                            <th>Duración</th>
-                            <th>Proceso</th>
-                            <th>Motivo</th>
-                            <th>Operario</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for paro in paros_recientes %}
-                        <tr>
-                            <td>{{ paro.fecha_hora_inicio|date:"Y-m-d H:i" }}</td>
-                            <td>{{ paro.duracion }}</td>
-                            <td>{{ paro.proceso }}</td>
-                            <td>{{ paro.motivo.nombre }}</td>
-                            <td>{{ paro.id_operario_reporta.nombre_completo }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center">No hay paros registrados</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <!-- Paros Recientes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial">
+                <div class="card-header card-header-production">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pause-circle me-2"></i>Paros de Producción
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Proceso</th>
+                                    <th>Duración</th>
+                                    <th>Motivo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for paro in paros_recientes|slice:":5" %}
+                                <tr>
+                                    <td><small>{{ paro.fecha_hora_inicio|date:"m/d H:i" }}</small></td>
+                                    <td>
+                                        <span class="status-badge status-paused">{{ paro.proceso|title }}</span>
+                                    </td>
+                                    <td><strong>{{ paro.duracion|default:"En curso" }}</strong></td>
+                                    <td><small>{{ paro.motivo.nombre|truncatechars:15 }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        <i class="bi bi-check-circle me-2"></i>No hay paros registrados
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Agregar los íconos de Bootstrap -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+<style>
+.list-group-item {
+    border: 1px solid rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: rgba(46, 139, 87, 0.05);
+    border-color: var(--cp-primary);
+}
+</style>
 {% endblock %}

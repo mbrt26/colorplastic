@@ -203,11 +203,76 @@ def traslado_form(request):
 @login_required
 def produccion_dashboard(request):
     """Dashboard de producción con estado actual de los procesos."""
+    from django.utils import timezone
+    from django.db.models import Sum, Avg, Count
+    from datetime import timedelta
+    
+    hoy = timezone.now().date()
+    inicio_dia = timezone.make_aware(timezone.datetime.combine(hoy, timezone.datetime.min.time()))
+    fin_dia = timezone.make_aware(timezone.datetime.combine(hoy, timezone.datetime.max.time()))
+    
+    # Obtener producciones recientes (últimas 5 de cada tipo)
+    molido_reciente = ProduccionMolido.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    lavado_reciente = ProduccionLavado.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    peletizado_reciente = ProduccionPeletizado.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    inyeccion_reciente = ProduccionInyeccion.objects.select_related(
+        'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    # Calcular estadísticas del día
+    procesos_hoy = (
+        ProduccionMolido.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionLavado.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionPeletizado.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).count()
+    )
+    
+    # Calcular eficiencia promedio del día
+    eficiencias = []
+    for modelo in [ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion]:
+        producciones = modelo.objects.filter(fecha__range=[inicio_dia, fin_dia])
+        for prod in producciones:
+            if prod.cantidad_entrada and prod.cantidad_entrada > 0:
+                eficiencias.append((prod.cantidad_salida / prod.cantidad_entrada) * 100)
+    
+    eficiencia_promedio = sum(eficiencias) / len(eficiencias) if eficiencias else 0
+    
+    # Calcular total producido hoy
+    total_producido = (
+        ProduccionMolido.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionLavado.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionPeletizado.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    )
+    
+    # Contar paros activos (sin fecha de fin)
+    paros_activos = ParosProduccion.objects.filter(fecha_hora_fin__isnull=True).count()
+    
     context = {
-        'molido_reciente': ProduccionMolido.objects.all().order_by('-fecha')[:5],
-        'lavado_reciente': ProduccionLavado.objects.all().order_by('-fecha')[:5],
-        'peletizado_reciente': ProduccionPeletizado.objects.all().order_by('-fecha')[:5],
-        'inyeccion_reciente': ProduccionInyeccion.objects.all().order_by('-fecha')[:5],
+        'molido_reciente': molido_reciente,
+        'lavado_reciente': lavado_reciente,
+        'peletizado_reciente': peletizado_reciente,
+        'inyeccion_reciente': inyeccion_reciente,
+        'total_procesos_hoy': procesos_hoy,
+        'eficiencia_promedio': eficiencia_promedio,
+        'total_producido_kg': total_producido,
+        'paros_activos': paros_activos,
     }
     return render(request, 'gestion/produccion_dashboard.html', context)
 

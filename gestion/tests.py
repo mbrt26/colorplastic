@@ -417,3 +417,53 @@ class InventarioCentralizadoTests(TestCase):
         self.assertFalse(MovimientosInventario.objects.filter(pk=movimiento.pk).exists())
         self.lote.refresh_from_db()
         self.assertEqual(self.lote.cantidad_actual, Decimal("100.00"))
+
+    def test_eliminar_produccion_con_consumos_restaura_todo(self):
+        """Al eliminar una producción con consumos asociados se deben revertir todos los movimientos."""
+        lote_prod = Lotes.objects.create(
+            numero_lote="DEL-PROD-CONS-001",
+            id_material=self.material,
+            cantidad_inicial=Decimal("0.00"),
+            id_bodega_actual=self.bodega,
+        )
+
+        prod = ProduccionMolido.objects.create(
+            id_maquina=self.maquina_molido,
+            id_operario=self.operario,
+            cantidad_salida=Decimal("40.00"),
+            id_bodega_destino=self.bodega,
+            id_lote_producido=lote_prod,
+        )
+
+        consumo = ProduccionConsumo.objects.create(
+            id_produccion_molido=prod,
+            id_lote_consumido=self.lote,
+            cantidad_consumida=Decimal("40.00"),
+            id_bodega_origen=self.bodega,
+        )
+
+        mov_ingreso = MovimientosInventario.objects.get(
+            produccion_referencia=str(prod.id_produccion),
+            tipo_movimiento="IngresoServicio",
+        )
+        mov_consumo = MovimientosInventario.objects.get(
+            produccion_referencia=str(prod.id_produccion),
+            id_lote=self.lote,
+            tipo_movimiento="ConsumoProduccion",
+        )
+
+        lote_prod.refresh_from_db()
+        self.lote.refresh_from_db()
+        self.assertEqual(lote_prod.cantidad_actual, Decimal("40.00"))
+        self.assertEqual(self.lote.cantidad_actual, Decimal("60.00"))
+
+        prod.delete()
+
+        self.assertFalse(MovimientosInventario.objects.filter(pk=mov_ingreso.pk).exists())
+        self.assertFalse(MovimientosInventario.objects.filter(pk=mov_consumo.pk).exists())
+
+        lote_prod.refresh_from_db()
+        self.lote.refresh_from_db()
+        self.assertEqual(lote_prod.cantidad_actual, Decimal("0.00"))
+        self.assertFalse(lote_prod.activo)
+        self.assertEqual(self.lote.cantidad_actual, Decimal("100.00"))

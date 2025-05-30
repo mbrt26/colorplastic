@@ -1,0 +1,240 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Editar Producción Inyección{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Editar Producción Inyección</h1>
+                <a href="{% url 'gestion:produccion_inyeccion' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row g-3">
+                            <!-- Información básica -->
+                            <div class="col-md-6">
+                                <label for="orden_trabajo" class="form-label">Orden de Trabajo</label>
+                                <input type="text" class="form-control" id="orden_trabajo" name="orden_trabajo" 
+                                       value="{{ produccion.orden_trabajo }}" required>
+                                <div class="invalid-feedback">
+                                    La orden de trabajo es requerida.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="fecha" class="form-label">Fecha y Hora</label>
+                                <input type="datetime-local" class="form-control" id="fecha" name="fecha" 
+                                       value="{{ produccion.fecha|date:'Y-m-d\TH:i' }}" required>
+                                <div class="invalid-feedback">
+                                    La fecha es requerida.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="turno" class="form-label">Turno</label>
+                                <select class="form-select" id="turno" name="turno" required>
+                                    <option value="">Seleccionar turno</option>
+                                    <option value="Día" {% if produccion.turno == 'Día' %}selected{% endif %}>Día</option>
+                                    <option value="Noche" {% if produccion.turno == 'Noche' %}selected{% endif %}>Noche</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    El turno es requerido.
+                                </div>
+                            </div>
+
+                            <!-- Asignaciones -->
+                            <div class="col-md-6">
+                                <label for="id_maquina" class="form-label">Máquina</label>
+                                <select class="form-select" id="id_maquina" name="id_maquina" required>
+                                    <option value="">Seleccionar máquina</option>
+                                    {% for maquina in maquinas %}
+                                    <option value="{{ maquina.id }}" {% if produccion.id_maquina.id == maquina.id %}selected{% endif %}>
+                                        {{ maquina.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">
+                                    La máquina es requerida.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="id_operario" class="form-label">Operario</label>
+                                <select class="form-select" id="id_operario" name="id_operario" required>
+                                    <option value="">Seleccionar operario</option>
+                                    {% for operario in operarios %}
+                                    <option value="{{ operario.id }}" {% if produccion.id_operario.id == operario.id %}selected{% endif %}>
+                                        {{ operario.nombre_completo }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">
+                                    El operario es requerido.
+                                </div>
+                            </div>
+
+                            <!-- Información del lote -->
+                            <div class="col-md-12">
+                                <h5 class="mt-3 mb-3">Información del Lote</h5>
+                                <div class="alert alert-info">
+                                    <strong>Lote:</strong> {{ produccion.id_lote_producido.numero_lote }}<br>
+                                    <strong>Material:</strong> {{ produccion.id_lote_producido.id_material.nombre }}<br>
+                                    <strong>Cantidad disponible:</strong> {{ produccion.id_lote_producido.cantidad_actual }} {{ produccion.id_lote_producido.unidad_medida }}
+                                </div>
+                            </div>
+
+                            <!-- Cantidades -->
+                            <div class="col-md-6">
+                                <label for="cantidad_entrada" class="form-label">Cantidad Entrada ({{ produccion.id_lote_producido.unidad_medida }})</label>
+                                <input type="number" step="0.01" class="form-control" id="cantidad_entrada" name="cantidad_entrada" 
+                                       value="{{ produccion.cantidad_entrada }}" required>
+                                <div class="invalid-feedback">
+                                    La cantidad de entrada es requerida.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="cantidad_salida" class="form-label">Cantidad Salida ({{ produccion.id_lote_producido.unidad_medida }})</label>
+                                <input type="number" step="0.01" class="form-control" id="cantidad_salida" name="cantidad_salida" 
+                                       value="{{ produccion.cantidad_salida }}" required>
+                                <div class="invalid-feedback">
+                                    La cantidad de salida es requerida.
+                                </div>
+                                <div class="form-text">
+                                    Eficiencia actual: <span id="eficiencia">{{ produccion.eficiencia|floatformat:2 }}%</span>
+                                </div>
+                            </div>
+
+                            <!-- Bodega destino -->
+                            <div class="col-md-6">
+                                <label for="id_bodega_destino" class="form-label">Bodega Destino</label>
+                                <select class="form-select" id="id_bodega_destino" name="id_bodega_destino" required>
+                                    <option value="">Seleccionar bodega</option>
+                                    {% for bodega in bodegas %}
+                                    <option value="{{ bodega.id }}" {% if produccion.id_bodega_destino.id == bodega.id %}selected{% endif %}>
+                                        {{ bodega.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">
+                                    La bodega destino es requerida.
+                                </div>
+                            </div>
+
+                            <!-- Archivo adjunto (específico de inyección) -->
+                            <div class="col-md-6">
+                                <label for="archivo_adjunto" class="form-label">Archivo Adjunto</label>
+                                <input type="file" class="form-control" id="archivo_adjunto" name="archivo_adjunto" 
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                {% if produccion.archivo_adjunto %}
+                                <div class="form-text text-info">
+                                    <i class="bi bi-file-earmark"></i> 
+                                    Archivo actual: <a href="{{ produccion.archivo_adjunto.url }}" target="_blank">{{ produccion.archivo_adjunto.name }}</a>
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Formatos permitidos: PDF, Word, imágenes (JPG, PNG)
+                                </div>
+                            </div>
+
+                            <!-- Observaciones -->
+                            <div class="col-12">
+                                <label for="observaciones" class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="observaciones" name="observaciones" rows="3">{{ produccion.observaciones }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> Guardar Cambios
+                                </button>
+                                <a href="{% url 'gestion:produccion_inyeccion' %}" class="btn btn-secondary ms-2">
+                                    <i class="bi bi-x"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación del formulario
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+
+    // Calcular eficiencia automáticamente
+    const cantidadEntrada = document.getElementById('cantidad_entrada');
+    const cantidadSalida = document.getElementById('cantidad_salida');
+    const eficienciaSpan = document.getElementById('eficiencia');
+
+    function calcularEficiencia() {
+        const entrada = parseFloat(cantidadEntrada.value) || 0;
+        const salida = parseFloat(cantidadSalida.value) || 0;
+        
+        if (entrada > 0) {
+            const eficiencia = (salida / entrada * 100).toFixed(2);
+            eficienciaSpan.textContent = eficiencia + '%';
+            
+            // Cambiar color según eficiencia
+            if (eficiencia >= 85) {
+                eficienciaSpan.className = 'text-success fw-bold';
+            } else if (eficiencia >= 70) {
+                eficienciaSpan.className = 'text-warning fw-bold';
+            } else {
+                eficienciaSpan.className = 'text-danger fw-bold';
+            }
+        } else {
+            eficienciaSpan.textContent = '0%';
+            eficienciaSpan.className = '';
+        }
+    }
+
+    cantidadEntrada.addEventListener('input', calcularEficiencia);
+    cantidadSalida.addEventListener('input', calcularEficiencia);
+
+    // Validar archivo adjunto
+    const archivoAdjunto = document.getElementById('archivo_adjunto');
+    archivoAdjunto.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const allowedTypes = ['application/pdf', 'application/msword', 
+                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                 'image/jpeg', 'image/jpg', 'image/png'];
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert('Tipo de archivo no permitido. Solo se permiten archivos PDF, Word e imágenes.');
+                this.value = '';
+                return;
+            }
+            
+            // Verificar tamaño (máximo 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+                this.value = '';
+                return;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -68,12 +68,60 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {% if request.resolver_match.url_name == 'despachos' %}active{% endif %}" 
-                                       href="{% url 'gestion:despachos' %}">
-                                        <i class="fas fa-truck-loading"></i> Despachos
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'bodegas' %}active{% endif %}" 
+                                       href="{% url 'gestion:bodegas' %}">
+                                        <i class="bi bi-building"></i>
+                                        <span>Gestión de Bodegas</span>
                                     </a>
                                 </li>
-                                <!-- ... existing inventory menu items ... -->
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'lotes' %}active{% endif %}" 
+                                       href="{% url 'gestion:lotes' %}">
+                                        <i class="bi bi-archive"></i>
+                                        <span>Gestión de Lotes</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <!-- Administración -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#adminSubmenu">
+                            <i class="bi bi-gear"></i>
+                            <span>Administración</span>
+                        </a>
+                        <div class="collapse" id="adminSubmenu">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'gestion:materiales' %}">
+                                        <i class="bi bi-layers"></i>
+                                        <span>Materiales</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'gestion:maquinas' %}">
+                                        <i class="bi bi-cpu"></i>
+                                        <span>Máquinas</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'gestion:operarios' %}">
+                                        <i class="bi bi-people"></i>
+                                        <span>Operarios</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'gestion:terceros' %}">
+                                        <i class="bi bi-building"></i>
+                                        <span>Terceros</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'gestion:motivos_paro' %}">
+                                        <i class="bi bi-pause-circle"></i>
+                                        <span>Motivos de Paro</span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </li>

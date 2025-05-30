@@ -81,13 +81,13 @@
                     <td>{{ produccion.id_bodega_destino.nombre }}</td>
                     <td>
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ produccion.id }}">
+                            <a href="{% url 'gestion:editar_produccion_inyeccion' produccion.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id }}">
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id }}" title="Gestionar Paros">
                                 <i class="bi bi-clock"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id }}" title="Eliminar">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -104,39 +104,6 @@
 
     <!-- Modales -->
     {% for produccion in producciones %}
-    <!-- Modal de Edición -->
-    <div class="modal fade" id="editModal{{ produccion.id }}" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Editar Producción</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post" action="{% url 'gestion:editar_produccion_inyeccion' produccion.id %}">
-                    {% csrf_token %}
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="orden_trabajo" class="form-label">Orden de Trabajo</label>
-                            <input type="text" class="form-control" id="orden_trabajo" name="orden_trabajo" value="{{ produccion.orden_trabajo|default:'' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="turno" class="form-label">Turno</label>
-                            <input type="text" class="form-control" id="turno" name="turno" value="{{ produccion.turno|default:'' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="observaciones" class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3">{{ produccion.observaciones|default:'' }}</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Paros -->
     <div class="modal fade" id="parosModal{{ produccion.id }}" tabindex="-1">
         <div class="modal-dialog modal-lg">

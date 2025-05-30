@@ -175,6 +175,62 @@
                         </div>
                     </div>
 
+                    <!-- Sección de Cantidades Producidas -->
+                    {% if tipo_proceso != 'Inyeccion' %}
+                    <div class="mb-4">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-clipboard-data"></i> Registro de Cantidades Producidas
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="cantidad_salida" class="form-label">Cantidad Producida (kg)</label>
+                                        <input type="number" 
+                                               step="0.01" 
+                                               min="0.01"
+                                               class="form-control" 
+                                               id="cantidad_salida" 
+                                               name="cantidad_salida" 
+                                               placeholder="Ingrese la cantidad producida"
+                                               required>
+                                        <div class="invalid-feedback">
+                                            Por favor ingrese la cantidad producida
+                                        </div>
+                                        <div class="form-text">
+                                            <small class="text-muted">Cantidad total de material procesado que resultó del molido</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="merma" class="form-label">Merma (kg)</label>
+                                        <input type="number" 
+                                               step="0.01" 
+                                               min="0"
+                                               class="form-control" 
+                                               id="merma" 
+                                               name="merma" 
+                                               placeholder="Ingrese la merma"
+                                               value="0">
+                                        <div class="form-text">
+                                            <small class="text-muted">Material perdido durante el proceso (opcional)</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="alert alert-info d-flex align-items-center" role="alert">
+                                            <i class="bi bi-info-circle-fill me-2"></i>
+                                            <div>
+                                                <strong>Información:</strong> La cantidad producida se calculará automáticamente basada en la cantidad de entrada menos la merma registrada.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- Observaciones -->
                     <div class="mb-3">
                         <label for="observaciones" class="form-label">Observaciones</label>
@@ -285,6 +341,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const stockSpans = document.querySelectorAll('.stock-disponible');
     const materialSalidaSelect = document.getElementById('material_salida');
     
+    // Elementos para cantidades producidas
+    const cantidadSalidaInput = document.getElementById('cantidad_salida');
+    const mermaInput = document.getElementById('merma');
+    
     // Autoseleccionar el turno basado en la hora actual
     const turnoSelect = document.getElementById('turno');
     const hora = new Date().getHours();
@@ -296,12 +356,68 @@ document.addEventListener('DOMContentLoaded', function() {
         turnoSelect.value = 'Noche';
     }
     
+    // Función para verificar stock en tiempo real
+    function verificarStockTiempoReal(loteId, stockElement, cantidadInput) {
+        if (!loteId) return;
+        
+        // Hacer una consulta AJAX para verificar el stock actual
+        fetch(`/gestion/api/verificar-stock/${loteId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.stock_actual !== undefined) {
+                    const stockMostrado = parseFloat(stockElement.textContent);
+                    const stockReal = parseFloat(data.stock_actual);
+                    
+                    // Si hay discrepancia, actualizar y mostrar advertencia
+                    if (Math.abs(stockMostrado - stockReal) > 0.01) {
+                        stockElement.textContent = stockReal.toFixed(2);
+                        stockElement.style.color = 'red';
+                        
+                        // Añadir advertencia visual
+                        let warning = stockElement.parentElement.querySelector('.stock-warning');
+                        if (!warning) {
+                            warning = document.createElement('div');
+                            warning.className = 'stock-warning alert alert-warning alert-sm mt-1';
+                            warning.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Stock actualizado en tiempo real';
+                            stockElement.parentElement.appendChild(warning);
+                        }
+                        
+                        // Actualizar el max del input
+                        cantidadInput.max = stockReal;
+                        
+                        // Re-validar la cantidad si ya hay un valor ingresado
+                        if (cantidadInput.value) {
+                            const cantidad = parseFloat(cantidadInput.value);
+                            if (cantidad > stockReal) {
+                                cantidadInput.setCustomValidity('La cantidad excede el stock actual disponible');
+                                cantidadInput.classList.add('is-invalid');
+                            }
+                        }
+                    } else {
+                        stockElement.style.color = '';
+                        // Remover advertencia si existe
+                        const warning = stockElement.parentElement.querySelector('.stock-warning');
+                        if (warning) {
+                            warning.remove();
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.warn('No se pudo verificar el stock en tiempo real:', error);
+            });
+    }
+    
     function actualizarInfoLote(loteSelect, stockSpan, cantidadInput) {
         const selectedOption = loteSelect.options[loteSelect.selectedIndex];
         if (selectedOption.value) {
             const stock = selectedOption.dataset.stock || '0.00';
             stockSpan.textContent = Number(stock).toFixed(2);
+            stockSpan.style.color = ''; // Reset color
             cantidadInput.max = stock;
+            
+            // Verificar stock en tiempo real
+            verificarStockTiempoReal(selectedOption.value, stockSpan, cantidadInput);
             
             // Si existe el select de material de salida, preseleccionar basado en el material de entrada
             if (materialSalidaSelect) {
@@ -315,7 +431,47 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             stockSpan.textContent = '0.00';
+            stockSpan.style.color = '';
             cantidadInput.max = '0';
+            
+            // Remover advertencia si existe
+            const warning = stockSpan.parentElement.querySelector('.stock-warning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+    }
+    
+    function calcularTotalEntrada() {
+        let total = 0;
+        cantidadInputs.forEach(input => {
+            if (input.value) {
+                total += parseFloat(input.value) || 0;
+            }
+        });
+        return total;
+    }
+    
+    function actualizarCalculosProduccion() {
+        const totalEntrada = calcularTotalEntrada();
+        const cantidadSalida = parseFloat(cantidadSalidaInput?.value || 0);
+        const merma = parseFloat(mermaInput?.value || 0);
+        
+        // Validar que cantidad salida + merma no exceda entrada
+        if (cantidadSalidaInput && totalEntrada > 0) {
+            if (cantidadSalida + merma > totalEntrada) {
+                cantidadSalidaInput.setCustomValidity('La cantidad producida más la merma no puede exceder la cantidad de entrada');
+            } else {
+                cantidadSalidaInput.setCustomValidity('');
+            }
+        }
+        
+        if (mermaInput && totalEntrada > 0) {
+            if (cantidadSalida + merma > totalEntrada) {
+                mermaInput.setCustomValidity('La cantidad producida más la merma no puede exceder la cantidad de entrada');
+            } else {
+                mermaInput.setCustomValidity('');
+            }
         }
     }
     
@@ -329,16 +485,30 @@ document.addEventListener('DOMContentLoaded', function() {
             const stock = parseFloat(stockSpans[index].textContent);
             const cantidad = parseFloat(this.value);
             
-            if (cantidad > stock) {
-                this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
-                this.nextElementSibling.textContent = 'La cantidad no puede ser mayor al stock disponible';
-            } else if (cantidad <= 0) {
-                this.setCustomValidity('La cantidad debe ser mayor que cero');
-                this.nextElementSibling.textContent = 'La cantidad debe ser mayor que cero';
+            // SOLO VALIDAR FORMATO BÁSICO - DEJAR VALIDACIONES COMPLEJAS AL BACKEND
+            if (isNaN(cantidad) || cantidad < 0) {
+                this.setCustomValidity('Ingrese un número válido mayor o igual a cero');
+                this.nextElementSibling.textContent = 'Ingrese un número válido mayor o igual a cero';
             } else {
                 this.setCustomValidity('');
+                this.nextElementSibling.textContent = '';
             }
+            
+            actualizarCalculosProduccion();
         });
+    });
+    
+    // Eventos para cantidades producidas
+    if (cantidadSalidaInput) {
+        cantidadSalidaInput.addEventListener('input', actualizarCalculosProduccion);
+    }
+    if (mermaInput) {
+        mermaInput.addEventListener('input', actualizarCalculosProduccion);
+    }
+    
+    // Actualizar cálculos cuando cambien las cantidades de entrada
+    cantidadInputs.forEach(input => {
+        input.addEventListener('input', actualizarCalculosProduccion);
     });
     
     // Validación del formulario
@@ -374,10 +544,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const stock = parseFloat(newStockSpan.textContent);
             const cantidad = parseFloat(this.value);
             
+            // VALIDACIÓN COMENTADA TEMPORALMENTE - DEJAR QUE EL BACKEND VALIDE
+            /*
             if (cantidad > stock) {
                 this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
                 this.nextElementSibling.textContent = 'La cantidad no puede ser mayor al stock disponible';
             } else if (cantidad <= 0) {
+                this.setCustomValidity('La cantidad debe ser mayor que cero');
+                this.nextElementSibling.textContent = 'La cantidad debe ser mayor que cero';
+            } else {
+                this.setCustomValidity('');
+            }
+            */
+            
+            // Solo validar que sea mayor que cero
+            if (cantidad <= 0) {
                 this.setCustomValidity('La cantidad debe ser mayor que cero');
                 this.nextElementSibling.textContent = 'La cantidad debe ser mayor que cero';
             } else {
@@ -397,6 +578,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     addParoButton.addEventListener('click', function() {
         parosContainer.insertAdjacentHTML('beforeend', paroTemplate);
+    });
+    
+    // Event listeners para validación en tiempo real
+    loteSelects.forEach((select, index) => {
+        select.addEventListener('change', function() {
+            const stockSpan = document.getElementById(`stock-${index}`);
+            const cantidadInput = document.getElementById(`cantidad-${index}`);
+            
+            if (stockSpan && cantidadInput) {
+                actualizarInfoLote(select, stockSpan, cantidadInput);
+                
+                // Verificar stock cada 30 segundos mientras el lote esté seleccionado
+                if (this.value) {
+                    const intervalId = setInterval(() => {
+                        if (this.value) {
+                            verificarStockTiempoReal(this.value, stockSpan, cantidadInput);
+                        } else {
+                            clearInterval(intervalId);
+                        }
+                    }, 30000); // 30 segundos
+                    
+                    // Limpiar interval cuando se cambie el lote
+                    this.dataset.intervalId = intervalId;
+                } else if (this.dataset.intervalId) {
+                    clearInterval(this.dataset.intervalId);
+                    delete this.dataset.intervalId;
+                }
+            }
+        });
+        
+        // Limpiar intervals al salir de la página
+        window.addEventListener('beforeunload', function() {
+            if (select.dataset.intervalId) {
+                clearInterval(select.dataset.intervalId);
+            }
+        });
     });
 });
 </script>

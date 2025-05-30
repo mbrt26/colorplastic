@@ -14,11 +14,15 @@ from .models import (
 from .inventario_utils import procesar_movimiento_inventario
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
+import uuid
+from django.utils import timezone
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .models import Despacho, DetalleDespacho
 from django import forms
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
 
 class DespachoForm(forms.ModelForm):
     class Meta:
@@ -224,6 +228,20 @@ def nuevo_proceso_produccion(request, tipo_proceso):
     
     tipo_proceso_normalizado = tipo_proceso_mapping.get(tipo_proceso, tipo_proceso.capitalize())
     
+    # Obtener lotes disponibles con validación adicional en tiempo real
+    lotes_disponibles = Lotes.objects.filter(
+        activo=True, 
+        cantidad_actual__gt=0
+    ).select_related('id_material', 'id_bodega_actual').order_by('numero_lote')
+    
+    # Re-validar las cantidades en tiempo real para evitar discrepancias
+    lotes_validados = []
+    for lote in lotes_disponibles:
+        # Verificar que el lote realmente tenga stock disponible
+        lote_actual = Lotes.objects.get(pk=lote.pk)
+        if lote_actual.activo and lote_actual.cantidad_actual > 0:
+            lotes_validados.append(lote_actual)
+    
     # Preparar contexto para el formulario
     context = {
         'tipo_proceso': tipo_proceso_normalizado,
@@ -231,13 +249,32 @@ def nuevo_proceso_produccion(request, tipo_proceso):
         'maquinas': Maquinas.objects.filter(tipo_proceso=tipo_proceso_normalizado, activo=True),
         'materiales': Materiales.objects.all(),
         'bodegas': Bodegas.objects.all(),
-        'lotes_disponibles': Lotes.objects.filter(activo=True, cantidad_actual__gt=0),
+        'lotes_disponibles': lotes_validados,
         'motivos_paro': MotivoParo.objects.all(),
     }
     
     if request.method == 'POST':
+        # AÑADIR LOGGING DETALLADO PARA DEPURACIÓN
+        import logging
+        import json
+        
+        logger = logging.getLogger(__name__)
+        logger.error("=== INICIO DEPURACIÓN VISTA WEB ===")
+        
+        # Log de todos los datos POST
+        post_data = {}
+        for key, value in request.POST.items():
+            if hasattr(value, '__iter__') and not isinstance(value, str):
+                post_data[key] = list(value)
+            else:
+                post_data[key] = value
+        
+        logger.error(f"Datos POST recibidos: {json.dumps(post_data, indent=2, default=str)}")
+        
         try:
             with transaction.atomic():
+                logger.error("Iniciando transacción atómica")
+                
                 # Obtener datos del formulario
                 operario = Operarios.objects.get(pk=request.POST.get('operario'))
                 maquina = Maquinas.objects.get(pk=request.POST.get('maquina'))
@@ -247,12 +284,18 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 observaciones = request.POST.get('observaciones', '')
                 archivo_adjunto = request.FILES.get('archivo_adjunto')
                 
+                logger.error(f"Datos básicos obtenidos: operario={operario.nombre_completo}, maquina={maquina.nombre}, OT={orden_trabajo}")
+                
                 # Obtener lotes y cantidades
                 lotes_entrada = request.POST.getlist('lote_entrada[]')
                 cantidades_entrada = request.POST.getlist('cantidad_entrada[]')
                 
+                logger.error(f"Lotes entrada: {lotes_entrada}")
+                logger.error(f"Cantidades entrada: {cantidades_entrada}")
+                
                 # Validar que hay al menos un lote
                 if not lotes_entrada:
+                    logger.error("ERROR: No hay lotes de entrada")
                     raise ValidationError('Debe seleccionar al menos un lote de entrada')
                 
                 # Calcular cantidad total de entrada
@@ -260,42 +303,93 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 for cantidad in cantidades_entrada:
                     cantidad_total_entrada += Decimal(cantidad)
                 
+                logger.error(f"Cantidad total entrada: {cantidad_total_entrada}")
+                
                 # Por defecto, la cantidad de salida es igual a la de entrada
                 # En la práctica, esto debería ajustarse según el proceso específico
                 cantidad_total_salida = cantidad_total_entrada
                 
                 # Crear el lote de producción (excepto para inyección)
+                nuevo_lote = None
                 if tipo_proceso_normalizado != 'Inyeccion':
                     material_salida = Materiales.objects.get(pk=request.POST.get('material_salida'))
+                    
+                    # Generar número de lote único
+                    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+                    numero_lote_unico = f"{orden_trabajo}-{tipo_proceso_normalizado}-{timestamp}"
+                    
+                    logger.error(f"Creando lote de producción: {numero_lote_unico}")
+                    
+                    # CREAR EL LOTE DIRECTAMENTE SIN MOVIMIENTO DE INVENTARIO ADICIONAL
+                    # El lote se crea con la cantidad correcta y YA está en inventario
                     nuevo_lote = Lotes.objects.create(
-                        numero_lote=f"{orden_trabajo}-{tipo_proceso_normalizado}",
+                        numero_lote=numero_lote_unico,
                         id_material=material_salida,
                         cantidad_inicial=cantidad_total_salida,
                         cantidad_actual=cantidad_total_salida,
                         id_bodega_actual=bodega_destino,
                         activo=True
                     )
+                    
+                    logger.error(f"Lote de producción creado: {nuevo_lote.id_lote}")
                 
-                # Procesar cada lote de entrada
-                for lote_id, cantidad in zip(lotes_entrada, cantidades_entrada):
-                    lote = Lotes.objects.get(pk=lote_id)
+                # Procesar cada lote de entrada (SOLO CONSUMOS)
+                logger.error("=== INICIANDO PROCESAMIENTO DE LOTES ===")
+                
+                for i, (lote_id, cantidad) in enumerate(zip(lotes_entrada, cantidades_entrada)):
+                    logger.error(f"--- Procesando lote {i+1}/{len(lotes_entrada)} ---")
+                    
+                    # FORZAR RE-CONSULTA FRESH DEL LOTE para evitar problemas de cache
+                    lote = Lotes.objects.select_for_update().get(pk=lote_id)
                     cantidad = Decimal(cantidad)
                     
-                    # Validar cantidad
-                    if cantidad > lote.cantidad_actual:
-                        raise ValidationError(f'La cantidad a procesar ({cantidad}) excede el stock disponible ({lote.cantidad_actual}) para el lote {lote.numero_lote}')
+                    logger.error(f"Lote obtenido (FRESH): {lote.numero_lote} (ID: {lote.id_lote})")
+                    logger.error(f"Stock actual (FRESH): {lote.cantidad_actual}")
+                    logger.error(f"Cantidad a procesar: {cantidad}")
+                    logger.error(f"Activo (FRESH): {lote.activo}")
                     
-                    # Procesar consumo
-                    procesar_movimiento_inventario(
-                        tipo_movimiento='ConsumoProduccion',
-                        lote=lote,
-                        cantidad=cantidad,
-                        bodega_origen=lote.id_bodega_actual,
-                        bodega_destino=None,
-                        produccion_referencia=orden_trabajo,
-                        observaciones=f"Consumo para {tipo_proceso_normalizado} - OT: {orden_trabajo}"
-                    )
+                    # Validaciones básicas antes de procesar
+                    if not lote.activo:
+                        logger.error(f"ERROR: Lote {lote.numero_lote} no está activo")
+                        raise ValidationError(f'El lote {lote.numero_lote} no está activo.')
+                    
+                    if cantidad <= 0:
+                        logger.error(f"ERROR: Cantidad inválida {cantidad}")
+                        raise ValidationError(f'La cantidad debe ser mayor que cero para el lote {lote.numero_lote}.')
+                    
+                    # VALIDACIÓN ADICIONAL DE STOCK ANTES DE PROCESAR
+                    if lote.cantidad_actual < cantidad:
+                        logger.error(f"ERROR: Stock insuficiente - Disponible: {lote.cantidad_actual}, Requerido: {cantidad}")
+                        raise ValidationError(f'Stock insuficiente para el lote {lote.numero_lote}. Disponible: {lote.cantidad_actual}, requerido: {cantidad}')
+                    
+                    logger.error("Validaciones completas OK - Llamando a procesar_movimiento_inventario")
+                    
+                    # Procesar SOLO el consumo (salida de inventario)
+                    # La función procesar_movimiento_inventario hará toda la validación atómica
+                    try:
+                        movimiento = procesar_movimiento_inventario(
+                            tipo_movimiento='ConsumoProduccion',
+                            lote=lote,
+                            cantidad=cantidad,
+                            bodega_origen=lote.id_bodega_actual,
+                            bodega_destino=None,
+                            produccion_referencia=orden_trabajo,
+                            observaciones=f"Consumo para {tipo_proceso_normalizado} - OT: {orden_trabajo}"
+                        )
+                        
+                        logger.error(f"✓ Movimiento procesado exitosamente: {movimiento.id_movimiento}")
+                        
+                        # Verificar estado después
+                        lote.refresh_from_db()
+                        logger.error(f"Stock después: {lote.cantidad_actual}, Activo: {lote.activo}")
+                        
+                    except Exception as e:
+                        logger.error(f"ERROR al procesar movimiento: {str(e)}")
+                        logger.error(f"Tipo de error: {type(e).__name__}")
+                        raise e
                 
+                logger.error("=== LOTES PROCESADOS - REGISTRANDO PROCESO ===")
+
                 # Registrar el proceso según su tipo
                 proceso_data = {
                     'id_operario': operario,
@@ -309,12 +403,13 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                     'archivo_adjunto': archivo_adjunto
                 }
                 
-                if tipo_proceso_normalizado != 'Inyeccion':
+                if nuevo_lote:
                     proceso_data['id_lote_producido'] = nuevo_lote
                 
                 # Crear el proceso correspondiente
                 if tipo_proceso_normalizado == 'Molido':
                     proceso = ProduccionMolido.objects.create(**proceso_data)
+                    logger.error(f"Proceso de molido creado: {proceso.id_produccion}")
                 elif tipo_proceso_normalizado == 'Lavado':
                     proceso = ProduccionLavado.objects.create(**proceso_data)
                 elif tipo_proceso_normalizado == 'Peletizado':
@@ -323,6 +418,8 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 elif tipo_proceso_normalizado == 'Inyeccion':
                     proceso_data['numero_mezclas'] = request.POST.get('numero_mezclas', 1)
                     proceso = ProduccionInyeccion.objects.create(**proceso_data)
+
+                logger.error("=== REGISTRANDO CONSUMOS ===")
 
                 # Registrar consumos en la tabla ProduccionConsumo
                 for lote_id, cantidad in zip(lotes_entrada, cantidades_entrada):
@@ -343,14 +440,21 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                     elif tipo_proceso_normalizado == 'Inyeccion':
                         consumo_data['id_produccion_inyeccion'] = proceso
                     
-                    ProduccionConsumo.objects.create(**consumo_data)
+                    consumo = ProduccionConsumo.objects.create(**consumo_data)
+                    logger.error(f"Consumo registrado: {consumo.id_consumo}")
                 
+                logger.error("=== PROCESO COMPLETADO EXITOSAMENTE ===")
                 messages.success(request, f'Proceso de {tipo_proceso_normalizado} registrado exitosamente.')
                 return redirect('gestion:produccion_dashboard')
             
         except ValidationError as e:
+            logger.error(f"ValidationError: {str(e)}")
             messages.error(request, str(e))
         except Exception as e:
+            logger.error(f"Exception general: {str(e)}")
+            logger.error(f"Tipo: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             messages.error(request, f'Error al registrar el proceso: {str(e)}')
     
     return render(request, 'gestion/nuevo_proceso.html', context)
@@ -1440,3 +1544,98 @@ def despachos(request):
         'clientes': clientes,
     }
     return render(request, 'gestion/despachos.html', context)
+
+@login_required
+@require_GET
+def verificar_stock_api(request, lote_id):
+    """API endpoint para verificar el stock actual de un lote en tiempo real."""
+    try:
+        lote = Lotes.objects.get(pk=lote_id, activo=True)
+        return JsonResponse({
+            'success': True,
+            'stock_actual': float(lote.cantidad_actual),
+            'activo': lote.activo,
+            'numero_lote': lote.numero_lote
+        })
+    except Lotes.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Lote no encontrado o inactivo',
+            'stock_actual': 0
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'stock_actual': 0
+        })
+
+@login_required
+def test_proceso_directo(request):
+    """Vista de prueba para procesar un lote directamente sin formulario."""
+    if request.method == 'GET':
+        # Mostrar información del lote y botón para procesarlo
+        lote = Lotes.objects.filter(numero_lote='1-Lavado-20250529201736').first()
+        
+        context = {
+            'lote': lote,
+            'mensaje': 'Esta es una vista de prueba para procesar el lote directamente'
+        }
+        
+        return render(request, 'gestion/test_proceso.html', context)
+    
+    elif request.method == 'POST':
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Log inicial
+            logger.error("=== INICIO PRUEBA PROCESO DIRECTO ===")
+            
+            # Obtener el lote específico
+            lote = Lotes.objects.select_for_update().get(numero_lote='1-Lavado-20250529201736')
+            logger.error(f"Lote obtenido: {lote.numero_lote}")
+            logger.error(f"Stock antes: {lote.cantidad_actual}")
+            logger.error(f"Activo: {lote.activo}")
+            
+            # Procesar directamente
+            cantidad = Decimal('0.5')  # Cantidad fija para prueba
+            
+            with transaction.atomic():
+                logger.error("Iniciando transacción atómica")
+                
+                # Verificar stock nuevamente dentro de la transacción
+                lote.refresh_from_db()
+                logger.error(f"Stock después de refresh: {lote.cantidad_actual}")
+                
+                if lote.cantidad_actual < cantidad:
+                    logger.error(f"ERROR: Stock insuficiente - Disponible: {lote.cantidad_actual}, Requerido: {cantidad}")
+                    raise ValidationError(f'Stock insuficiente. Disponible: {lote.cantidad_actual}, Requerido: {cantidad}')
+                
+                logger.error("Llamando a procesar_movimiento_inventario...")
+                
+                movimiento = procesar_movimiento_inventario(
+                    tipo_movimiento='ConsumoProduccion',
+                    lote=lote,
+                    cantidad=cantidad,
+                    bodega_origen=lote.id_bodega_actual,
+                    bodega_destino=None,
+                    produccion_referencia='TEST-DIRECTO',
+                    observaciones='Prueba de proceso directo'
+                )
+                
+                logger.error(f"✓ Movimiento procesado: {movimiento.id_movimiento}")
+                
+                # Verificar estado final
+                lote.refresh_from_db()
+                logger.error(f"Stock después: {lote.cantidad_actual}")
+                logger.error(f"Activo después: {lote.activo}")
+                
+                messages.success(request, f'Proceso directo completado exitosamente. Movimiento: {movimiento.id_movimiento}')
+            
+        except Exception as e:
+            logger.error(f"ERROR en proceso directo: {str(e)}")
+            logger.error(f"Tipo de error: {type(e).__name__}")
+            messages.error(request, f'Error en proceso directo: {str(e)}')
+        
+        return redirect('gestion:test_proceso_directo')

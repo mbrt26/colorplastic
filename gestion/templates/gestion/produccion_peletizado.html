@@ -83,13 +83,13 @@
                     <td>{{ produccion.numero_mezclas }}</td>
                     <td>
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ produccion.id }}">
+                            <a href="{% url 'gestion:editar_produccion_peletizado' produccion.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id }}">
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id }}" title="Gestionar Paros">
                                 <i class="bi bi-clock"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id }}" title="Eliminar">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>

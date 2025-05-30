@@ -81,13 +81,13 @@
                     <td>{{ produccion.id_bodega_destino.nombre }}</td>
                     <td>
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ produccion.id }}">
+                            <a href="{% url 'gestion:editar_produccion_lavado' produccion.id_produccion %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id }}">
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id_produccion }}" title="Gestionar Paros">
                                 <i class="bi bi-clock"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id_produccion }}" title="Eliminar">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -104,7 +104,7 @@
 
     <!-- Modales de Eliminación -->
     {% for produccion in producciones %}
-    <div class="modal fade" id="deleteModal{{ produccion.id }}" tabindex="-1">
+    <div class="modal fade" id="deleteModal{{ produccion.id_produccion }}" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -116,7 +116,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <form method="post" action="{% url 'gestion:eliminar_produccion_lavado' produccion.id %}">
+                    <form method="post" action="{% url 'gestion:eliminar_produccion_lavado' produccion.id_produccion %}">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-danger">Eliminar</button>
                     </form>
@@ -126,7 +126,7 @@
     </div>
 
     <!-- Modal de Paros -->
-    <div class="modal fade" id="parosModal{{ produccion.id }}" tabindex="-1">
+    <div class="modal fade" id="parosModal{{ produccion.id_produccion }}" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -171,7 +171,7 @@
                     </div>
                     
                     <!-- Formulario para nuevo paro -->
-                    <form id="formParo{{ produccion.id }}" method="post" action="{% url 'gestion:registrar_paro_lavado' produccion.id %}" class="row g-3">
+                    <form id="formParo{{ produccion.id_produccion }}" method="post" action="{% url 'gestion:registrar_paro_lavado' produccion.id_produccion %}" class="row g-3">
                         {% csrf_token %}
                         <div class="col-md-6">
                             <label for="fecha_hora_inicio" class="form-label">Fecha/Hora Inicio</label>
@@ -201,7 +201,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" form="formParo{{ produccion.id }}" class="btn btn-primary">Guardar Paro</button>
+                    <button type="submit" form="formParo{{ produccion.id_produccion }}" class="btn btn-primary">Guardar Paro</button>
                 </div>
             </div>
         </div>

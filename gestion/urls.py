@@ -12,8 +12,7 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('bodega/<uuid:bodega_id>/', views.inventario_bodega, name='inventario_bodega'),
     path('traslado/', views.traslado_form, name='traslado_form'),
-    path('despacho/', views.despacho_form, name='despacho_form'),
-    path('despachos/', views.despachos, name='despachos'),
+    path('despachos/', DespachoListView.as_view(), name='despachos'),  # Añadido para compatibilidad
     path('despacho/', DespachoListView.as_view(), name='despacho_list'),
     path('despacho/crear/', DespachoCreateView.as_view(), name='despacho_create'),
     path('despacho/<int:pk>/editar/', DespachoUpdateView.as_view(), name='despacho_update'),
@@ -86,4 +85,14 @@ urlpatterns = [
 
     # Inventario global
     path('inventario/global/', views.inventario_global, name='inventario_global'),
+    
+    # Despacho form
+    path('despacho/form/', views.despacho_form, name='despacho_form'),
+    path('despachos/list/', views.despachos, name='despachos_list'),
+    
+    # API endpoints
+    path('api/verificar-stock/<uuid:lote_id>/', views.verificar_stock_api, name='verificar_stock_api'),
+    
+    # Vista de prueba para diagnóstico
+    path('test-proceso-directo/', views.test_proceso_directo, name='test_proceso_directo'),
 ]

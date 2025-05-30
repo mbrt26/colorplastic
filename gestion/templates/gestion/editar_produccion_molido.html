@@ -1,0 +1,230 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Editar Producción Molido{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Editar Registro de Producción - Molido</h4>
+                    <small class="text-muted">OT: {{ produccion.orden_trabajo|default:"Sin asignar" }} | Fecha: {{ produccion.fecha|date:"Y-m-d H:i" }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- Información básica -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="orden_trabajo" class="form-label">Orden de Trabajo</label>
+                                    <input type="text" class="form-control" id="orden_trabajo" name="orden_trabajo" 
+                                           value="{{ produccion.orden_trabajo|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="turno" class="form-label">Turno</label>
+                                    <input type="text" class="form-control" id="turno" name="turno" 
+                                           value="{{ produccion.turno|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Operario y Máquina -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_operario" class="form-label">Operario</label>
+                                    <select class="form-select" id="id_operario" name="id_operario">
+                                        {% for operario in operarios %}
+                                        <option value="{{ operario.id_operario }}" 
+                                                {% if produccion.id_operario.id_operario == operario.id_operario %}selected{% endif %}>
+                                            {{ operario.nombre_completo }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_maquina" class="form-label">Máquina</label>
+                                    <select class="form-select" id="id_maquina" name="id_maquina">
+                                        {% for maquina in maquinas %}
+                                        <option value="{{ maquina.id_maquina }}" 
+                                                {% if produccion.id_maquina.id_maquina == maquina.id_maquina %}selected{% endif %}>
+                                            {{ maquina.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Bodega destino -->
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="id_bodega_destino" class="form-label">Bodega Destino</label>
+                                    <select class="form-select" id="id_bodega_destino" name="id_bodega_destino">
+                                        {% for bodega in bodegas %}
+                                        <option value="{{ bodega.id_bodega }}" 
+                                                {% if produccion.id_bodega_destino.id_bodega == bodega.id_bodega %}selected{% endif %}>
+                                            {{ bodega.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Cantidades -->
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="cantidad_entrada" class="form-label">Cantidad Entrada (kg)</label>
+                                    <input type="number" step="0.01" class="form-control" id="cantidad_entrada" 
+                                           name="cantidad_entrada" value="{{ produccion.cantidad_entrada }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="cantidad_salida" class="form-label">Cantidad Salida (kg)</label>
+                                    <input type="number" step="0.01" class="form-control" id="cantidad_salida" 
+                                           name="cantidad_salida" value="{{ produccion.cantidad_salida }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="merma" class="form-label">Merma (kg)</label>
+                                    <input type="number" step="0.01" class="form-control" id="merma" 
+                                           name="merma" value="{{ produccion.merma|default:0 }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información del lote producido -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Lote Producido</h6>
+                                        <p class="card-text">
+                                            <strong>Número:</strong> {{ produccion.id_lote_producido.numero_lote }}<br>
+                                            <strong>Material:</strong> {{ produccion.id_lote_producido.id_material.nombre }}<br>
+                                            <strong>Cantidad Actual:</strong> {{ produccion.id_lote_producido.cantidad_actual }} kg
+                                        </p>
+                                        <small class="text-muted">
+                                            Nota: Al modificar la cantidad de salida, se actualizará automáticamente el lote producido.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Archivo adjunto -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="archivo_adjunto" class="form-label">Archivo Adjunto</label>
+                                    {% if produccion.archivo_adjunto %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            Archivo actual: <a href="{{ produccion.archivo_adjunto.url }}" target="_blank">Ver archivo</a>
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    <input type="file" class="form-control" id="archivo_adjunto" name="archivo_adjunto">
+                                    <div class="form-text">Seleccione un archivo para reemplazar el existente (opcional)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Observaciones -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="observaciones" class="form-label">Observaciones</label>
+                                    <textarea class="form-control" id="observaciones" name="observaciones" rows="4">{{ produccion.observaciones|default:'' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información de eficiencia -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                    <strong>Eficiencia Actual:</strong> {{ produccion.eficiencia|floatformat:2 }}%
+                                    <div id="eficiencia-calculada" class="mt-2" style="display: none;">
+                                        <strong>Nueva Eficiencia:</strong> <span id="nueva-eficiencia">0.00</span>%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'gestion:produccion_molido' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cantidadEntrada = document.getElementById('cantidad_entrada');
+    const cantidadSalida = document.getElementById('cantidad_salida');
+    const merma = document.getElementById('merma');
+    const eficienciaDiv = document.getElementById('eficiencia-calculada');
+    const nuevaEficienciaSpan = document.getElementById('nueva-eficiencia');
+    
+    function calcularEficiencia() {
+        const entrada = parseFloat(cantidadEntrada.value) || 0;
+        const salida = parseFloat(cantidadSalida.value) || 0;
+        const mermaVal = parseFloat(merma.value) || 0;
+        
+        if (entrada > 0) {
+            const eficiencia = (salida / entrada) * 100;
+            nuevaEficienciaSpan.textContent = eficiencia.toFixed(2);
+            eficienciaDiv.style.display = 'block';
+            
+            // Validar que salida + merma no exceda entrada
+            if (salida + mermaVal > entrada) {
+                alert('La cantidad de salida más la merma no puede exceder la cantidad de entrada');
+                cantidadSalida.focus();
+            }
+        } else {
+            eficienciaDiv.style.display = 'none';
+        }
+    }
+    
+    cantidadEntrada.addEventListener('input', calcularEficiencia);
+    cantidadSalida.addEventListener('input', calcularEficiencia);
+    merma.addEventListener('input', calcularEficiencia);
+    
+    // Validación del formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const entrada = parseFloat(cantidadEntrada.value) || 0;
+        const salida = parseFloat(cantidadSalida.value) || 0;
+        const mermaVal = parseFloat(merma.value) || 0;
+        
+        if (salida + mermaVal > entrada) {
+            e.preventDefault();
+            alert('La cantidad de salida más la merma no puede exceder la cantidad de entrada');
+            return false;
+        }
+        
+        if (entrada <= 0 || salida < 0 || mermaVal < 0) {
+            e.preventDefault();
+            alert('Por favor, ingrese valores válidos para las cantidades');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

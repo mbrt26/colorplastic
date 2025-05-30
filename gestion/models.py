@@ -233,7 +233,7 @@ class MovimientosInventario(models.Model):
 # --- Production Models Now Inherit Correctly ---
 class ProduccionMolido(BaseProduccion):
     id_maquina = models.ForeignKey(Maquinas, limit_choices_to={'tipo_proceso': 'Molido'}, on_delete=models.PROTECT, verbose_name='Molino')
-    # ADDED: id_lote_producido con related_name único
+    # ADDED: id_lote_producido with related_name único
     id_lote_producido = models.OneToOneField(Lotes, on_delete=models.PROTECT, related_name='produccion_molido_origen', verbose_name='Lote Producido')
     # REMOVED: clasificacion_producida - Assuming classification is on the Lote
     # clasificacion_producida = models.CharField(max_length=10, choices=Lotes.CLASIFICACION_CHOICES, blank=True, null=True, verbose_name='Clasificación Producida')
@@ -241,14 +241,20 @@ class ProduccionMolido(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_salida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -268,14 +274,20 @@ class ProduccionLavado(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_salida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -296,14 +308,20 @@ class ProduccionPeletizado(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_salida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -322,14 +340,20 @@ class ProduccionInyeccion(BaseProduccion):
     def save(self, *args, **kwargs):
         from .inventario_utils import procesar_movimiento_inventario
         if self._state.adding:
-            procesar_movimiento_inventario(
-                tipo_movimiento='AjustePositivo',
-                lote=self.id_lote_producido,
-                cantidad=self.cantidad_salida,
-                bodega_destino=self.id_bodega_destino,
-                produccion_referencia=str(self.id_produccion),
-                observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
-            )
+            # Verificar si el lote ya tiene la cantidad correcta
+            if (self.id_lote_producido.id_bodega_actual == self.id_bodega_destino and 
+                self.id_lote_producido.cantidad_actual == self.cantidad_salida):
+                # El lote ya está configurado correctamente, no crear movimiento duplicado
+                print(f"Lote {self.id_lote_producido.numero_lote} ya tiene la cantidad correcta, omitiendo movimiento")
+            else:
+                procesar_movimiento_inventario(
+                    tipo_movimiento='IngresoServicio',
+                    lote=self.id_lote_producido,
+                    cantidad=self.cantidad_salida,
+                    bodega_destino=self.id_bodega_destino,
+                    produccion_referencia=str(self.id_produccion),
+                    observaciones=f"Producción: {self.__class__.__name__} OT:{self.orden_trabajo}"
+                )
         super().save(*args, **kwargs)
 
     def __str__(self):

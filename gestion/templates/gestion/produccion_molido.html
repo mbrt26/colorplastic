@@ -85,13 +85,13 @@
                     <td>{{ produccion.id_bodega_destino.nombre }}</td>
                     <td>
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ produccion.id_produccion }}">
+                            <a href="{% url 'gestion:editar_produccion_molido' produccion.id_produccion %}" class="btn btn-sm btn-outline-primary" title="Editar Producción">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id_produccion }}">
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#parosModal{{ produccion.id_produccion }}" title="Gestionar Paros">
                                 <i class="bi bi-clock"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id_produccion }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produccion.id_produccion }}" title="Eliminar">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>

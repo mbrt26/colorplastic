@@ -213,7 +213,11 @@ def produccion_dashboard(request):
 
 @login_required
 def nuevo_proceso_produccion(request, tipo_proceso):
-    """Vista para iniciar un nuevo proceso de producción."""
+    """Vista para iniciar un nuevo proceso de producción.
+
+    El movimiento de inventario por consumos se genera automáticamente a
+    través de la señal ``post_save`` de :class:`ProduccionConsumo`.
+    """
     # Normalizar el tipo de proceso para que coincida con el almacenado en la base de datos
     tipo_proceso_mapping = {
         'molido': 'Molido',
@@ -362,31 +366,13 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                         logger.error(f"ERROR: Stock insuficiente - Disponible: {lote.cantidad_actual}, Requerido: {cantidad}")
                         raise ValidationError(f'Stock insuficiente para el lote {lote.numero_lote}. Disponible: {lote.cantidad_actual}, requerido: {cantidad}')
                     
-                    logger.error("Validaciones completas OK - Llamando a procesar_movimiento_inventario")
-                    
-                    # Procesar SOLO el consumo (salida de inventario)
-                    # La función procesar_movimiento_inventario hará toda la validación atómica
-                    try:
-                        movimiento = procesar_movimiento_inventario(
-                            tipo_movimiento='ConsumoProduccion',
-                            lote=lote,
-                            cantidad=cantidad,
-                            bodega_origen=lote.id_bodega_actual,
-                            bodega_destino=None,
-                            produccion_referencia=orden_trabajo,
-                            observaciones=f"Consumo para {tipo_proceso_normalizado} - OT: {orden_trabajo}"
-                        )
-                        
-                        logger.error(f"✓ Movimiento procesado exitosamente: {movimiento.id_movimiento}")
-                        
-                        # Verificar estado después
-                        lote.refresh_from_db()
-                        logger.error(f"Stock después: {lote.cantidad_actual}, Activo: {lote.activo}")
-                        
-                    except Exception as e:
-                        logger.error(f"ERROR al procesar movimiento: {str(e)}")
-                        logger.error(f"Tipo de error: {type(e).__name__}")
-                        raise e
+                    # El descuento de inventario ya no se realiza aquí.
+                    # Se delega a la señal post_save asociada a ProduccionConsumo
+                    # para evitar duplicar movimientos y garantizar consistencia.
+                    logger.error(
+                        "Validaciones completas OK - el movimiento de inventario "
+                        "será procesado por la señal post_save de ProduccionConsumo"
+                    )
                 
                 logger.error("=== LOTES PROCESADOS - REGISTRANDO PROCESO ===")
 

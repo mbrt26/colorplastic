@@ -63,15 +63,17 @@ class DetalleDespachoFormSet(forms.BaseInlineFormSet):
         super().clean()
         total = 0
         for form in self.forms:
-            if not form.is_valid():
+            if not hasattr(form, "cleaned_data") or not form.is_valid():
                 continue
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                cantidad = form.cleaned_data.get('cantidad', 0)
+            if form.cleaned_data and not form.cleaned_data.get("DELETE", False):
+                cantidad = form.cleaned_data.get("cantidad", 0)
                 if cantidad <= 0:
-                    raise forms.ValidationError('La cantidad debe ser mayor que cero.')
+                    raise forms.ValidationError("La cantidad debe ser mayor que cero.")
                 total += cantidad
-        if total <= 0:
-            raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
+
+        # Permitir la actualización cuando ya existen detalles almacenados
+        if total <= 0 and not self.instance.detalles.exists():
+            raise forms.ValidationError("Debe incluir al menos un producto en el despacho.")
 
 DetalleDespachoFormSet = forms.inlineformset_factory(
     Despacho, DetalleDespacho,

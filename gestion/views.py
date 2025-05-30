@@ -72,7 +72,10 @@ class DespachoCreateView(LoginRequiredMixin, CreateView):
         if self.request.POST:
             context['formset'] = DetalleDespachoFormSet(self.request.POST)
         else:
-            context['formset'] = DetalleDespachoFormSet()
+            lote_id = self.request.GET.get('lote')
+            producto = Lotes.objects.filter(pk=lote_id).first() if lote_id else None
+            initial = [{'producto': producto}] if producto else None
+            context['formset'] = DetalleDespachoFormSet(initial=initial)
         return context
 
     def form_valid(self, form):
@@ -1513,88 +1516,6 @@ def inventario_global(request):
     
     return render(request, 'gestion/inventario_global.html', context)
 
-@login_required
-def despacho_form(request):
-    """Vista para gestionar el despacho de materiales a clientes."""
-    # Obtener lote preseleccionado si viene en la URL
-    lote_id = request.GET.get('lote')
-    lote_preseleccionado = None
-    if (lote_id):
-        lote_preseleccionado = get_object_or_404(Lotes, pk=lote_id)
-
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                # Obtener datos del formulario
-                lote = get_object_or_404(Lotes, pk=request.POST.get('id_lote'))
-                cantidad = Decimal(request.POST.get('cantidad'))
-                destino_tercero = get_object_or_404(Terceros, pk=request.POST.get('id_destino_tercero'))
-                consecutivo_soporte = request.POST.get('consecutivo_soporte')
-                observaciones = request.POST.get('observaciones')
-
-                # Procesar el despacho como un movimiento de inventario
-                procesar_movimiento_inventario(
-                    tipo_movimiento='Venta',
-                    lote=lote,
-                    cantidad=cantidad,
-                    bodega_origen=lote.id_bodega_actual,
-                    id_destino_tercero=destino_tercero,
-                    consecutivo_soporte=consecutivo_soporte,
-                    observaciones=observaciones,
-                    usuario=request.user
-                )
-
-                messages.success(request, f'Despacho realizado exitosamente. Remisión/Factura: {consecutivo_soporte}')
-                return redirect('gestion:inventario_global')
-
-        except ValidationError as e:
-            messages.error(request, str(e))
-        except Exception as e:
-            messages.error(request, f'Error al procesar el despacho: {str(e)}')
-            
-    # Preparar datos para el formulario
-    lotes_disponibles = Lotes.objects.filter(activo=True).exclude(pk=lote_id) if lote_id else Lotes.objects.filter(activo=True)
-    clientes = Terceros.objects.filter(activo=True).order_by('nombre')
-
-    context = {
-        'lote_preseleccionado': lote_preseleccionado,
-        'lotes_disponibles': lotes_disponibles,
-        'clientes': clientes,
-    }
-    return render(request, 'gestion/despacho_form.html', context)
-
-@login_required
-def despachos(request):
-    """Vista para mostrar y filtrar los despachos realizados."""
-    # Iniciar con todos los despachos (movimientos tipo Venta)
-    despachos = MovimientosInventario.objects.filter(
-        tipo_movimiento='Venta'
-    ).select_related(
-        'id_lote',
-        'id_lote__id_material',
-        'id_destino_tercero'
-    ).order_by('-fecha')
-
-    # Aplicar filtros
-    fecha_inicio = request.GET.get('fecha_inicio')
-    fecha_fin = request.GET.get('fecha_fin')
-    cliente = request.GET.get('cliente')
-
-    if fecha_inicio:
-        despachos = despachos.filter(fecha__date__gte=fecha_inicio)
-    if fecha_fin:
-        despachos = despachos.filter(fecha__date__lte=fecha_fin)
-    if cliente:
-        despachos = despachos.filter(id_destino_tercero_id=cliente)
-
-    # Obtener lista de clientes para el filtro
-    clientes = Terceros.objects.filter(tipo='Cliente', activo=True).order_by('nombre')
-
-    context = {
-        'despachos': despachos,
-        'clientes': clientes,
-    }
-    return render(request, 'gestion/despachos.html', context)
 
 @login_required
 @require_GET

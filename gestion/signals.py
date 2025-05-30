@@ -1,11 +1,20 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db import transaction
 from django.db.models import F
 from django.core.exceptions import ValidationError # Import ValidationError
 import uuid # Import uuid for generating part IDs
 
-from .models import MovimientosInventario, Lotes, ProduccionConsumo, Bodegas # Import Bodegas
+from .models import (
+    MovimientosInventario,
+    Lotes,
+    ProduccionConsumo,
+    Bodegas,
+    ProduccionMolido,
+    ProduccionLavado,
+    ProduccionPeletizado,
+    ProduccionInyeccion,
+)
 
 @receiver(post_save, sender=MovimientosInventario)
 def registrar_movimiento(sender, instance: MovimientosInventario, created, **kwargs):
@@ -57,3 +66,39 @@ def actualizar_estado_activo_lote(sender, instance: Lotes, **kwargs):
         Lotes.objects.filter(pk=instance.pk).update(activo=True)
 
 # ... (resto del archivo si hubiera más señales) ...
+
+
+def _revert_movimientos_produccion(instance):
+    """Revierta todos los movimientos asociados a una producción."""
+    from .inventario_utils import revert_movimiento_inventario
+
+    movimientos = MovimientosInventario.objects.filter(
+        produccion_referencia=str(instance.id_produccion)
+    )
+    for mov in movimientos:
+        revert_movimiento_inventario(mov)
+
+
+@receiver(post_delete, sender=ProduccionMolido)
+@receiver(post_delete, sender=ProduccionLavado)
+@receiver(post_delete, sender=ProduccionPeletizado)
+@receiver(post_delete, sender=ProduccionInyeccion)
+def revertir_produccion(sender, instance, **kwargs):
+    _revert_movimientos_produccion(instance)
+
+
+@receiver(post_delete, sender=ProduccionConsumo)
+def revertir_consumo_produccion(sender, instance, **kwargs):
+    from .inventario_utils import revert_movimiento_inventario
+
+    produccion_padre = instance.get_produccion_padre()
+    if not produccion_padre:
+        return
+
+    movimientos = MovimientosInventario.objects.filter(
+        produccion_referencia=str(produccion_padre.id_produccion),
+        id_lote=instance.id_lote_consumido,
+        tipo_movimiento="ConsumoProduccion",
+    )
+    for mov in movimientos:
+        revert_movimiento_inventario(mov)

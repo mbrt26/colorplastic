@@ -114,21 +114,6 @@
                         </a>
                     </li>
                     
-                    <!-- Despachos -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if 'despacho' in request.path %}active{% endif %}" 
-                           href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-truck me-1"></i>Despachos
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'gestion:despacho_list' %}">
-                                <i class="bi bi-list-ul me-2"></i>Listado de Despachos
-                            </a></li>
-                            <li><a class="dropdown-item" href="{% url 'gestion:despacho_create' %}">
-                                <i class="bi bi-plus-circle me-2"></i>Nuevo Despacho
-                            </a></li>
-                        </ul>
-                    </li>
                     
                     <!-- Inventario -->
                     <li class="nav-item dropdown">

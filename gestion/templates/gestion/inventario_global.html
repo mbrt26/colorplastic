@@ -88,13 +88,9 @@
                                     <td>{{ lote.clasificacion|default:"-" }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}" 
+                                            <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}"
                                                class="btn btn-sm btn-outline-primary">
                                                 Trasladar
-                                            </a>
-                                            <a href="{% url 'gestion:despacho_create' %}?lote={{ lote.pk }}"
-                                               class="btn btn-sm btn-outline-success">
-                                                Despachar
                                             </a>
                                         </div>
                                     </td>
@@ -159,13 +155,9 @@
                                     <td>{{ lote.clasificacion|default:"-" }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}" 
+                                            <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.pk }}"
                                                class="btn btn-sm btn-outline-primary">
                                                 Trasladar
-                                            </a>
-                                            <a href="{% url 'gestion:despacho_create' %}?lote={{ lote.pk }}"
-                                               class="btn btn-sm btn-outline-success">
-                                                Despachar
                                             </a>
                                         </div>
                                     </td>

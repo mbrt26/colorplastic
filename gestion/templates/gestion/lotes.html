@@ -196,10 +196,6 @@
                                        class="btn btn-outline-secondary" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="{% url 'gestion:despacho_create' %}?lote={{ lote.id_lote }}"
-                                       class="btn btn-outline-success" title="Despachar">
-                                        <i class="bi bi-truck"></i>
-                                    </a>
                                     <button class="btn btn-outline-danger" 
                                             data-confirm="¿Eliminar el lote {{ lote.numero_lote }}?"
                                             onclick="eliminarLote({{ lote.id_lote }})" title="Eliminar">

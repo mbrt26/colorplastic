@@ -1,9 +1,5 @@
 from django.urls import path
 from . import views
-from .views import (
-    DespachoListView, DespachoCreateView, DespachoUpdateView, DespachoDetailView,
-    DespachoForm, DetalleDespachoFormSet
-)
 
 app_name = 'gestion'
 
@@ -12,11 +8,6 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('bodega/<uuid:bodega_id>/', views.inventario_bodega, name='inventario_bodega'),
     path('traslado/', views.traslado_form, name='traslado_form'),
-    path('despachos/', DespachoListView.as_view(), name='despachos'),  # Añadido para compatibilidad
-    path('despacho/', DespachoListView.as_view(), name='despacho_list'),
-    path('despacho/crear/', DespachoCreateView.as_view(), name='despacho_create'),
-    path('despacho/<int:pk>/editar/', DespachoUpdateView.as_view(), name='despacho_update'),
-    path('despacho/<int:pk>/detalle/', DespachoDetailView.as_view(), name='despacho_detail'),
     
     # Producción
     path('produccion/', views.produccion_dashboard, name='produccion_dashboard'),

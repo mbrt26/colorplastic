@@ -45,7 +45,9 @@ class DetalleDespachoFormSet(forms.BaseInlineFormSet):
                     raise forms.ValidationError('La cantidad debe ser mayor que cero.')
                 total += cantidad
         if total <= 0:
-            raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
+            # Permitir actualizar un despacho existente sin reenviar sus detalles
+            if not (self.instance.pk and self.instance.detalles.exists()):
+                raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
 
 DetalleDespachoFormSet = forms.inlineformset_factory(
     Despacho, DetalleDespacho,
@@ -109,10 +111,27 @@ class DespachoUpdateView(LoginRequiredMixin, UpdateView):
         context = self.get_context_data()
         formset = context['formset']
         if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            return super().form_valid(form)
+            # Mantener referencia al estado anterior para evitar doble descuento
+            estado_anterior = self.object.estado
+            with transaction.atomic():
+                self.object = form.save(commit=False)
+                if self.object.estado == 'despachado' and not self.object.fecha_despacho:
+                    self.object.fecha_despacho = timezone.now()
+                self.object.save()
+                formset.instance = self.object
+                formset.save()
+
+                if estado_anterior != 'despachado' and self.object.estado == 'despachado':
+                    for detalle in self.object.detalles.all():
+                        procesar_movimiento_inventario(
+                            tipo_movimiento='Venta',
+                            lote=detalle.producto,
+                            cantidad=detalle.cantidad,
+                            bodega_origen=detalle.bodega_origen,
+                            id_destino_tercero=self.object.tercero,
+                            consecutivo_soporte=self.object.numero_remision,
+                        )
+            return redirect(self.get_success_url())
         else:
             return self.render_to_response(self.get_context_data(form=form))
 

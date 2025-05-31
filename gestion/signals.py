@@ -10,6 +10,7 @@ from .models import (
     ProduccionLavado,
     ProduccionPeletizado,
     ProduccionInyeccion,
+    DetalleDespacho,
 )
 
 @receiver(post_save, sender=MovimientosInventario)
@@ -100,6 +101,39 @@ def revertir_consumo_produccion(sender, instance, **kwargs):
         produccion_referencia=str(produccion_padre_id),
         id_lote=instance.id_lote_consumido,
         tipo_movimiento="ConsumoProduccion",
+    )
+    for mov in movimientos:
+        revert_movimiento_inventario(mov)
+
+
+@receiver(post_save, sender=DetalleDespacho)
+def crear_movimiento_despacho(sender, instance: DetalleDespacho, created, **kwargs):
+    """Genera el movimiento de inventario al crear un detalle de despacho."""
+    if not created:
+        return
+    from .inventario_utils import procesar_movimiento_inventario
+
+    procesar_movimiento_inventario(
+        tipo_movimiento="Venta",
+        lote=instance.producto,
+        cantidad=instance.cantidad,
+        bodega_origen=instance.bodega_origen,
+        id_destino_tercero=instance.despacho.tercero,
+        consecutivo_soporte=instance.despacho.numero_remision,
+        observaciones=f"Despacho {instance.despacho.numero_remision}",
+    )
+
+
+@receiver(post_delete, sender=DetalleDespacho)
+def revertir_despacho(sender, instance: DetalleDespacho, **kwargs):
+    """Revierte los movimientos generados por un detalle de despacho al eliminarlo."""
+    from .inventario_utils import revert_movimiento_inventario
+
+    movimientos = MovimientosInventario.objects.filter(
+        consecutivo_soporte=instance.despacho.numero_remision,
+        id_lote=instance.producto,
+        tipo_movimiento="Venta",
+        cantidad=instance.cantidad,
     )
     for mov in movimientos:
         revert_movimiento_inventario(mov)

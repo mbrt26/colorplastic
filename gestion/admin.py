@@ -3,7 +3,8 @@ from django.contrib import admin
 from .models import (
     Materiales, Bodegas, Terceros, Operarios, Maquinas, Lotes, MovimientosInventario,
     ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion,
-    ProduccionConsumo, ParosProduccion, ResiduosProduccion, MotivoParo
+    ProduccionConsumo, ParosProduccion, ResiduosProduccion, MotivoParo,
+    Despacho, DetalleDespacho
 )
 
 # Register your models here.
@@ -315,6 +316,21 @@ class ResiduosProduccionAdmin(admin.ModelAdmin):
 
 # Registrar MotivoParo para administración
 admin.site.register(MotivoParo)
+
+# --- Admin para Despachos ---
+
+@admin.register(Despacho)
+class DespachoAdmin(admin.ModelAdmin):
+    list_display = ("numero_remision", "tercero", "fecha_despacho", "estado")
+    search_fields = ("numero_remision", "tercero__nombre")
+    list_filter = ("estado", "tercero__nombre")
+    autocomplete_fields = ["tercero", "usuario_creacion"]
+
+
+@admin.register(DetalleDespacho)
+class DetalleDespachoAdmin(admin.ModelAdmin):
+    list_display = ("despacho", "producto", "cantidad", "bodega_origen")
+    autocomplete_fields = ["despacho", "producto", "bodega_origen"]
 
 # Note: Models without explicit @admin.register are not shown in admin unless registered with admin.site.register()
 # We have registered all relevant models using decorators.

@@ -71,33 +71,15 @@ class DetalleDespachoFormSet(forms.BaseInlineFormSet):
                     raise forms.ValidationError("La cantidad debe ser mayor que cero.")
                 total += cantidad
 
+        if total <= 0:
+            if self.instance.pk and self.instance.detalles.exists():
+                return
+            raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
+
+
         # Permitir la actualización cuando ya existen detalles almacenados
         if total <= 0 and not self.instance.detalles.exists():
             raise forms.ValidationError("Debe incluir al menos un producto en el despacho.")
-
-DetalleDespachoFormSet = forms.inlineformset_factory(
-    Despacho, DetalleDespacho,
-    fields=['producto', 'cantidad', 'bodega_origen'],
-    extra=1,
-    can_delete=True,
-    formset=DetalleDespachoFormSet,
-    widgets={
-        'producto': forms.Select(attrs={
-            'class': 'form-select',
-            'data-placeholder': 'Seleccionar producto...'
-        }),
-        'cantidad': forms.NumberInput(attrs={
-            'class': 'form-control',
-            'step': '0.01',
-            'min': '0.01',
-            'placeholder': '0.00'
-        }),
-        'bodega_origen': forms.Select(attrs={
-            'class': 'form-select',
-            'data-placeholder': 'Seleccionar bodega...'
-        }),
-    }
-)
 
 class DespachoListView(LoginRequiredMixin, ListView):
     model = Despacho

@@ -1,0 +1,70 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Detalles Despacho{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-3">Despacho {{ despacho.numero_remision }}</h2>
+  <p><strong>Tercero:</strong> {{ despacho.tercero.nombre }}</p>
+  <p><strong>Dirección:</strong> {{ despacho.direccion_entrega }}</p>
+
+  <form method="post" class="row g-3 mb-4">
+    {% csrf_token %}
+    <div class="col-md-5">
+      <label class="form-label">Lote</label>
+      <select name="producto" class="form-select" required>
+        {% for l in lotes %}
+        <option value="{{ l.id_lote }}">{{ l.numero_lote }} - {{ l.id_material.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Bodega Origen</label>
+      <select name="bodega_origen" class="form-select" required>
+        {% for b in bodegas %}
+        <option value="{{ b.id_bodega }}">{{ b.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Cantidad</label>
+      <input type="number" step="0.01" name="cantidad" class="form-control" required>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary">Agregar</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Lote</th>
+          <th>Bodega</th>
+          <th>Cantidad</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in detalles %}
+        <tr>
+          <td>{{ d.producto.numero_lote }}</td>
+          <td>{{ d.bodega_origen.nombre }}</td>
+          <td>{{ d.cantidad }}</td>
+          <td>
+            <form method="post" action="{% url 'gestion:eliminar_detalle_despacho' d.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center">Sin detalles</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

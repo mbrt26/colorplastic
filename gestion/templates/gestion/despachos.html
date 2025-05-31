@@ -1,0 +1,91 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Despachos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Despachos</h1>
+
+    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#nuevoDespachoModal">
+        <i class="bi bi-plus-circle"></i> Nuevo Despacho
+    </button>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Remisión</th>
+                    <th>Tercero</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in despachos %}
+                <tr>
+                    <td>{{ d.numero_remision }}</td>
+                    <td>{{ d.tercero.nombre }}</td>
+                    <td>{{ d.fecha_despacho|date:'Y-m-d' }}</td>
+                    <td>{{ d.get_estado_display }}</td>
+                    <td>
+                        <a href="{% url 'gestion:detalle_despacho' d.id %}" class="btn btn-sm btn-info">
+                            Detalles
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No hay despachos registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nuevo Despacho -->
+<div class="modal fade" id="nuevoDespachoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nuevo Despacho</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Número de Remisión</label>
+            <input type="text" name="numero_remision" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Fecha de Despacho</label>
+            <input type="date" name="fecha_despacho" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tercero</label>
+            <select name="tercero" class="form-select" required>
+              {% for t in terceros %}
+              <option value="{{ t.id_tercero }}">{{ t.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dirección de Entrega</label>
+            <input type="text" name="direccion_entrega" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

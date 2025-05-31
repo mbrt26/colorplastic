@@ -102,13 +102,19 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'traslado' in request.path %}active{% endif %}" 
+                        <a class="nav-link {% if 'traslado' in request.path %}active{% endif %}"
                            href="{% url 'gestion:traslado_form' %}">
                             <i class="bi bi-arrow-left-right me-1"></i>Traslados
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'produccion' in request.path %}active{% endif %}" 
+                        <a class="nav-link {% if 'despacho' in request.path %}active{% endif %}"
+                           href="{% url 'gestion:despachos' %}">
+                            <i class="bi bi-truck me-1"></i>Despachos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'produccion' in request.path %}active{% endif %}"
                            href="{% url 'gestion:produccion_dashboard' %}">
                             <i class="bi bi-gear-fill me-1"></i>Producción
                         </a>

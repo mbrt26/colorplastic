@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import api
 
 app_name = 'gestion'
 
@@ -55,14 +56,20 @@ urlpatterns = [
     path('materiales/', views.materiales, name='materiales'),
     path('materiales/editar/<uuid:id>/', views.editar_material, name='editar_material'),
     path('materiales/eliminar/<uuid:id>/', views.eliminar_material, name='eliminar_material'),
+    path('materiales/plantilla-excel/', views.generar_plantilla_materiales, name='generar_plantilla_materiales'),
+    path('materiales/importar-excel/', views.importar_materiales_excel, name='importar_materiales_excel'),
     
     path('operarios/', views.operarios, name='operarios'),
     path('operarios/editar/<uuid:id>/', views.editar_operario, name='editar_operario'),
     path('operarios/eliminar/<uuid:id>/', views.eliminar_operario, name='eliminar_operario'),
+    path('operarios/plantilla-excel/', views.generar_plantilla_operarios, name='generar_plantilla_operarios'),
+    path('operarios/importar-excel/', views.importar_operarios_excel, name='importar_operarios_excel'),
     
     path('terceros/', views.terceros, name='terceros'),
     path('terceros/editar/<uuid:id>/', views.editar_tercero, name='editar_tercero'),
     path('terceros/eliminar/<uuid:id>/', views.eliminar_tercero, name='eliminar_tercero'),
+    path('terceros/plantilla-excel/', views.generar_plantilla_terceros, name='generar_plantilla_terceros'),
+    path('terceros/importar-excel/', views.importar_terceros_excel, name='importar_terceros_excel'),
 
     # Gestión de bodegas
     path('bodegas/', views.bodegas, name='bodegas'),
@@ -77,15 +84,25 @@ urlpatterns = [
     # Inventario global
     path('inventario/global/', views.inventario_global, name='inventario_global'),
 
+    # Módulo de ingreso de materiales
+    path('ingreso-materiales/', views.ingreso_materiales, name='ingreso_materiales'),
+    path('ingreso-materiales/procesar/', views.procesar_ingreso_material, name='procesar_ingreso_material'),
+    path('ingreso-materiales/detalle/<uuid:movimiento_id>/', views.detalle_ingreso_material, name='detalle_ingreso_material'),
+
     # Despachos de materiales
     path('despachos/', views.despachos, name='despachos'),
     path('despacho/<int:id>/', views.detalle_despacho, name='detalle_despacho'),
+    path('despacho/<int:id>/editar/', views.editar_despacho, name='editar_despacho'),
+    path('despacho/<int:id>/cambiar-estado/', views.cambiar_estado_despacho, name='cambiar_estado_despacho'),
     path('despacho/detalle/eliminar/<int:id>/', views.eliminar_detalle_despacho, name='eliminar_detalle_despacho'),
     
-
-    
     # API endpoints
-    path('api/verificar-stock/<uuid:lote_id>/', views.verificar_stock_api, name='verificar_stock_api'),
+    path('api/buscar-operarios/', api.buscar_operarios, name='buscar_operarios'),
+    path('api/verificar-stock/<uuid:lote_id>/', api.verificar_stock, name='verificar_stock_new'),
+    
+    # API endpoints para ingreso de materiales
+    path('api/buscar-proveedores/', views.buscar_proveedores, name='buscar_proveedores'),
+    path('api/verificar-numero-lote/', views.verificar_numero_lote, name='verificar_numero_lote'),
     
     # Vista de prueba para diagnóstico
     path('test-proceso-directo/', views.test_proceso_directo, name='test_proceso_directo'),

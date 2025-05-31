@@ -5,17 +5,20 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 from decimal import Decimal
-from .models import (
+from ..models import (
     Bodegas, Lotes, MovimientosInventario, 
     Materiales, Maquinas, Operarios, Terceros,
     ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion,
     ResiduosProduccion, ProduccionConsumo, MotivoParo, ParosProduccion,
     Despacho, DetalleDespacho
 )
-from .inventario_utils import procesar_movimiento_inventario
+from ..inventario_utils import procesar_movimiento_inventario
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 import uuid
+import logging
+import json
+import traceback
 from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
@@ -406,7 +409,6 @@ def nuevo_proceso_produccion(request, tipo_proceso):
         except Exception as e:
             logger.error(f"Exception general: {str(e)}")
             logger.error(f"Tipo: {type(e).__name__}")
-            import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             messages.error(request, f'Error al registrar el proceso: {str(e)}')
     

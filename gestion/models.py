@@ -10,15 +10,10 @@ from django.contrib.auth.models import User  # Import User model
 
 class Materiales(models.Model):
     TIPO_MATERIAL_CHOICES = [
-        ('Molido', 'Molido'),
-        ('Lavado', 'Lavado'),
-        ('Peletizado', 'Peletizado'),
-        ('Inyeccion', 'Inyección'),
-        ('Original', 'Original'),
-        ('Entero', 'Entero'),
-        ('Aglutinada', 'Aglutinada'),
-        ('Pigmento', 'Pigmento'),
-        ('Aditivo', 'Aditivo'),
+        ('MP', 'Materia Prima'),
+        ('PI', 'Producto Intermedio'),
+        ('PT', 'Producto Terminado'),
+        ('IN', 'Insumo'),
     ]
     id_material = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')

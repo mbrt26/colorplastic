@@ -16,14 +16,24 @@
                     <!-- Operario -->
                     <div class="mb-3">
                         <label for="operario" class="form-label">Operario</label>
-                        <select class="form-select" id="operario" name="operario" required>
-                            <option value="">Seleccione un operario...</option>
-                            {% for operario in operarios %}
-                            <option value="{{ operario.id_operario }}">{{ operario.nombre_completo }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="position-relative">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="operario_search" 
+                                   name="operario_search" 
+                                   placeholder="Buscar operario por nombre..."
+                                   autocomplete="off"
+                                   required>
+                            <input type="hidden" id="operario" name="operario" required>
+                            <div id="operario_dropdown" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <!-- Los resultados de búsqueda aparecerán aquí -->
+                            </div>
+                        </div>
                         <div class="invalid-feedback">
                             Por favor seleccione un operario
+                        </div>
+                        <div class="form-text">
+                            Escriba al menos 2 caracteres para buscar operarios
                         </div>
                     </div>
 
@@ -345,6 +355,107 @@ document.addEventListener('DOMContentLoaded', function() {
     const cantidadSalidaInput = document.getElementById('cantidad_salida');
     const mermaInput = document.getElementById('merma');
     
+    // Elementos para autocompletado de operario
+    const operarioSearchInput = document.getElementById('operario_search');
+    const operarioHiddenInput = document.getElementById('operario');
+    const operarioDropdown = document.getElementById('operario_dropdown');
+    let searchTimeout;
+    
+    // Funcionalidad de autocompletado para operarios
+    operarioSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Limpiar timeout anterior
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            operarioDropdown.style.display = 'none';
+            operarioHiddenInput.value = '';
+            return;
+        }
+        
+        // Debounce de 300ms
+        searchTimeout = setTimeout(() => {
+            fetch(`/gestion/api/buscar-operarios/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    mostrarResultadosOperarios(data.operarios);
+                })
+                .catch(error => {
+                    console.error('Error al buscar operarios:', error);
+                    operarioDropdown.style.display = 'none';
+                });
+        }, 300);
+    });
+    
+    function mostrarResultadosOperarios(operarios) {
+        operarioDropdown.innerHTML = '';
+        
+        if (operarios.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'dropdown-item-text text-muted';
+            noResults.textContent = 'No se encontraron operarios';
+            operarioDropdown.appendChild(noResults);
+        } else {
+            operarios.forEach(operario => {
+                const item = document.createElement('a');
+                item.className = 'dropdown-item';
+                item.href = '#';
+                item.innerHTML = `
+                    <div>
+                        <strong>${operario.nombre_completo}</strong>
+                        <br><small class="text-muted">Código: ${operario.codigo}</small>
+                    </div>
+                `;
+                
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    seleccionarOperario(operario);
+                });
+                
+                operarioDropdown.appendChild(item);
+            });
+        }
+        
+        operarioDropdown.style.display = 'block';
+    }
+    
+    function seleccionarOperario(operario) {
+        operarioSearchInput.value = operario.nombre_completo;
+        operarioHiddenInput.value = operario.id_operario;
+        operarioDropdown.style.display = 'none';
+        
+        // Remover cualquier estado de error
+        operarioSearchInput.classList.remove('is-invalid');
+        operarioSearchInput.setCustomValidity('');
+    }
+    
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!operarioSearchInput.contains(e.target) && !operarioDropdown.contains(e.target)) {
+            operarioDropdown.style.display = 'none';
+        }
+    });
+    
+    // Validar operario antes del envío del formulario
+    form.addEventListener('submit', function(e) {
+        if (!operarioHiddenInput.value) {
+            e.preventDefault();
+            e.stopPropagation();
+            operarioSearchInput.classList.add('is-invalid');
+            operarioSearchInput.setCustomValidity('Por favor seleccione un operario válido de la lista');
+            operarioSearchInput.focus();
+        }
+    });
+    
+    // Limpiar validación cuando se empiece a escribir
+    operarioSearchInput.addEventListener('input', function() {
+        if (this.classList.contains('is-invalid')) {
+            this.classList.remove('is-invalid');
+            this.setCustomValidity('');
+        }
+    });
+    
     // Autoseleccionar el turno basado en la hora actual
     const turnoSelect = document.getElementById('turno');
     const hora = new Date().getHours();
@@ -543,19 +654,6 @@ document.addEventListener('DOMContentLoaded', function() {
         newCantidadInput.addEventListener('input', function() {
             const stock = parseFloat(newStockSpan.textContent);
             const cantidad = parseFloat(this.value);
-            
-            // VALIDACIÓN COMENTADA TEMPORALMENTE - DEJAR QUE EL BACKEND VALIDE
-            /*
-            if (cantidad > stock) {
-                this.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
-                this.nextElementSibling.textContent = 'La cantidad no puede ser mayor al stock disponible';
-            } else if (cantidad <= 0) {
-                this.setCustomValidity('La cantidad debe ser mayor que cero');
-                this.nextElementSibling.textContent = 'La cantidad debe ser mayor que cero';
-            } else {
-                this.setCustomValidity('');
-            }
-            */
             
             // Solo validar que sea mayor que cero
             if (cantidad <= 0) {

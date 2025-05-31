@@ -123,11 +123,15 @@
                     
                     <!-- Inventario -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if 'inventario' in request.path or 'bodegas' in request.path or 'lotes' in request.path %}active{% endif %}" 
+                        <a class="nav-link dropdown-toggle {% if 'inventario' in request.path or 'bodegas' in request.path or 'lotes' in request.path or 'ingreso_materiales' in request.path %}active{% endif %}" 
                            href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-box-seam me-1"></i>Inventario
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'gestion:ingreso_materiales' %}">
+                                <i class="bi bi-truck me-2"></i>Ingreso de Materiales
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'gestion:inventario_global' %}">
                                 <i class="bi bi-boxes me-2"></i>Inventario Global
                             </a></li>

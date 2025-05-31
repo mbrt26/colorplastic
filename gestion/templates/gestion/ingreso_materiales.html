@@ -1,0 +1,325 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Ingreso de Materiales - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-truck me-2 text-success"></i>
+                Ingreso de Materiales
+            </h2>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalIngresoMaterial">
+                <i class="bi bi-plus-circle me-2"></i>Registrar Ingreso
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Ingresos del Mes</h5>
+                        <h3 class="mb-0">{{ total_ingresos_mes }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-box-arrow-in-down fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Proveedores Activos</h5>
+                        <h3 class="mb-0">{{ proveedores.count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-building fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de ingresos recientes -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-clock-history me-2"></i>
+            Ingresos Recientes (Últimos 30 días)
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if ingresos_recientes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Lote</th>
+                        <th>Material</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Bodega</th>
+                        <th>Factura/Remisión</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ingreso in ingresos_recientes %}
+                    <tr>
+                        <td>
+                            <small class="text-muted">{{ ingreso.fecha|date:"d/m/Y H:i" }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ ingreso.id_lote.numero_lote }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ ingreso.id_lote.id_material.tipo }}</span>
+                            <br>
+                            <small>{{ ingreso.id_lote.id_material.nombre }}</small>
+                        </td>
+                        <td>
+                            <i class="bi bi-building me-1"></i>
+                            {{ ingreso.id_origen_tercero.nombre }}
+                        </td>
+                        <td>
+                            <strong>{{ ingreso.cantidad|floatformat:2 }} kg</strong>
+                        </td>
+                        <td>
+                            <i class="bi bi-house me-1"></i>
+                            {{ ingreso.id_destino_bodega.nombre }}
+                        </td>
+                        <td>
+                            {% if ingreso.factura_remision %}
+                                <small class="text-muted">{{ ingreso.factura_remision }}</small>
+                            {% else %}
+                                <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'gestion:detalle_ingreso_material' ingreso.id_movimiento %}" 
+                               class="btn btn-sm btn-outline-primary"
+                               data-bs-toggle="tooltip" 
+                               title="Ver detalle">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-2">No hay ingresos registrados en los últimos 30 días</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para registrar nuevo ingreso -->
+<div class="modal fade" id="modalIngresoMaterial" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-truck me-2"></i>
+                    Registrar Ingreso de Material
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'gestion:procesar_ingreso_material' %}" id="formIngresoMaterial">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Información del Proveedor -->
+                        <div class="col-md-6 mb-3">
+                            <label for="proveedor" class="form-label">
+                                <i class="bi bi-building me-1"></i>Proveedor *
+                            </label>
+                            <select class="form-select" id="proveedor" name="proveedor" required>
+                                <option value="">Seleccione un proveedor...</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id_tercero }}">
+                                    {{ proveedor.nombre }}
+                                    {% if proveedor.identificacion %}({{ proveedor.identificacion }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Material -->
+                        <div class="col-md-6 mb-3">
+                            <label for="material" class="form-label">
+                                <i class="bi bi-layers me-1"></i>Material *
+                            </label>
+                            <select class="form-select" id="material" name="material" required>
+                                <option value="">Seleccione un material...</option>
+                                {% for material in materiales %}
+                                <option value="{{ material.id_material }}">
+                                    {{ material.nombre }} ({{ material.tipo }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Número de Lote -->
+                        <div class="col-md-6 mb-3">
+                            <label for="numero_lote" class="form-label">
+                                <i class="bi bi-tag me-1"></i>Número de Lote *
+                            </label>
+                            <input type="text" class="form-control" id="numero_lote" name="numero_lote" required>
+                            <div class="invalid-feedback" id="lote-error"></div>
+                        </div>
+
+                        <!-- Cantidad -->
+                        <div class="col-md-6 mb-3">
+                            <label for="cantidad" class="form-label">
+                                <i class="bi bi-calculator me-1"></i>Cantidad (kg) *
+                            </label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                                   step="0.01" min="0.01" required>
+                        </div>
+
+                        <!-- Bodega Destino -->
+                        <div class="col-md-6 mb-3">
+                            <label for="bodega" class="form-label">
+                                <i class="bi bi-house me-1"></i>Bodega Destino *
+                            </label>
+                            <select class="form-select" id="bodega" name="bodega" required>
+                                <option value="">Seleccione una bodega...</option>
+                                {% for bodega in bodegas %}
+                                <option value="{{ bodega.id_bodega }}">{{ bodega.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Factura/Remisión -->
+                        <div class="col-md-6 mb-3">
+                            <label for="factura_remision" class="form-label">
+                                <i class="bi bi-receipt me-1"></i>Factura/Remisión
+                            </label>
+                            <input type="text" class="form-control" id="factura_remision" name="factura_remision">
+                        </div>
+
+                        <!-- Fecha de Vencimiento -->
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_vencimiento" class="form-label">
+                                <i class="bi bi-calendar-event me-1"></i>Fecha de Vencimiento
+                            </label>
+                            <input type="date" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento">
+                        </div>
+
+                        <!-- Costo Unitario -->
+                        <div class="col-md-6 mb-3">
+                            <label for="costo_unitario" class="form-label">
+                                <i class="bi bi-currency-dollar me-1"></i>Costo Unitario
+                            </label>
+                            <input type="number" class="form-control" id="costo_unitario" name="costo_unitario" 
+                                   step="0.01" min="0">
+                        </div>
+
+                        <!-- Clasificación -->
+                        <div class="col-md-6 mb-3">
+                            <label for="clasificacion" class="form-label">
+                                <i class="bi bi-star me-1"></i>Clasificación de Calidad
+                            </label>
+                            <select class="form-select" id="clasificacion" name="clasificacion">
+                                <option value="">Sin clasificación</option>
+                                <option value="A">A - Excelente</option>
+                                <option value="B">B - Buena</option>
+                                <option value="C">C - Regular</option>
+                            </select>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="col-12 mb-3">
+                            <label for="observaciones" class="form-label">
+                                <i class="bi bi-chat-text me-1"></i>Observaciones
+                            </label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-2"></i>Registrar Ingreso
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación en tiempo real del número de lote
+    const numeroLoteInput = document.getElementById('numero_lote');
+    const loteError = document.getElementById('lote-error');
+    
+    numeroLoteInput.addEventListener('blur', function() {
+        const numeroLote = this.value.trim();
+        if (numeroLote) {
+            fetch(`{% url 'gestion:verificar_numero_lote' %}?numero_lote=${encodeURIComponent(numeroLote)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.existe) {
+                        this.classList.add('is-invalid');
+                        loteError.textContent = 'Este número de lote ya existe. Por favor use otro.';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        loteError.textContent = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al verificar el lote:', error);
+                });
+        }
+    });
+
+    // Generar número de lote automático basado en fecha y material
+    const materialSelect = document.getElementById('material');
+    materialSelect.addEventListener('change', function() {
+        if (this.value && !numeroLoteInput.value) {
+            const materialOption = this.options[this.selectedIndex];
+            const materialText = materialOption.textContent;
+            const materialCode = materialText.split('(')[1]?.split(')')[0] || 'MAT';
+            const today = new Date();
+            const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+            const timeStr = today.toTimeString().slice(0, 5).replace(':', '');
+            
+            const numeroLoteSugerido = `${materialCode}-${dateStr}-${timeStr}`;
+            numeroLoteInput.value = numeroLoteSugerido;
+        }
+    });
+
+    // Validación del formulario antes del envío
+    document.getElementById('formIngresoMaterial').addEventListener('submit', function(e) {
+        if (numeroLoteInput.classList.contains('is-invalid')) {
+            e.preventDefault();
+            alert('Por favor corrija el número de lote antes de continuar.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

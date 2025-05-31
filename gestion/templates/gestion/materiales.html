@@ -4,12 +4,31 @@
 
 {% block content %}
 <div class="container">
-    <h1 class="mb-4">Gestión de Materiales</h1>
-    
-    <!-- Botón para abrir modal de nuevo material -->
-    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevoMaterialModal">
-        <i class="bi bi-plus-circle"></i> Nuevo Material
-    </button>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Gestión de Materiales</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoMaterialModal">
+                <i class="bi bi-plus-circle"></i> Nuevo Material
+            </button>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'gestion:generar_plantilla_materiales' %}">
+                            <i class="bi bi-download me-2"></i>Descargar Plantilla
+                        </a>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importarExcelModal">
+                            <i class="bi bi-upload me-2"></i>Importar desde Excel
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
     
     <!-- Tabla de Materiales -->
     <div class="table-responsive">
@@ -26,7 +45,7 @@
                 {% for material in materiales %}
                 <tr>
                     <td>{{ material.nombre }}</td>
-                    <td>{{ material.tipo }}</td>
+                    <td>{{ material.get_tipo_display }}</td>
                     <td>{{ material.descripcion }}</td>
                     <td>
                         <div class="btn-group">
@@ -48,6 +67,57 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Modal Importar Excel -->
+    <div class="modal fade" id="importarExcelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Importar Materiales desde Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:importar_materiales_excel' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle me-2"></i>Instrucciones:
+                            </h6>
+                            <ul class="mb-0">
+                                <li>Descargue primero la plantilla Excel usando el botón correspondiente</li>
+                                <li>Complete los datos siguiendo las instrucciones de la plantilla</li>
+                                <li>Campos obligatorios: Nombre y Tipo</li>
+                                <li>Tipos válidos: MP (Materia Prima), PI (Producto Intermedio), PT (Producto Terminado), IN (Insumo)</li>
+                                <li>Los materiales duplicados serán omitidos</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="archivo_excel" class="form-label">Archivo Excel</label>
+                            <input type="file" class="form-control" id="archivo_excel" name="archivo_excel" 
+                                   accept=".xlsx,.xls" required>
+                            <div class="form-text">Formatos permitidos: .xlsx, .xls</div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <small>
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Esta acción creará nuevos materiales. Los materiales existentes no serán modificados.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-upload me-2"></i>Importar Materiales
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Nuevo Material -->
@@ -152,4 +222,34 @@
     </div>
     {% endfor %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación adicional para el archivo Excel
+    const archivoInput = document.getElementById('archivo_excel');
+    if (archivoInput) {
+        archivoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const validExtensions = ['.xlsx', '.xls'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (!validExtensions.includes(fileExtension)) {
+                    alert('Por favor seleccione un archivo Excel válido (.xlsx o .xls)');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Verificar tamaño del archivo (máximo 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+                if (file.size > maxSize) {
+                    alert('El archivo es demasiado grande. Máximo permitido: 5MB');
+                    e.target.value = '';
+                    return;
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

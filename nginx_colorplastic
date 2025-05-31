@@ -1,0 +1,29 @@
+server {
+    listen 80;
+    server_name YOUR_DOMAIN_OR_IP;  # Cambia esto por tu dominio o IP externa
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    
+    location /static/ {
+        root /opt/colorplastic/colorplastic;
+    }
+    
+    location /media/ {
+        root /opt/colorplastic/colorplastic;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/opt/colorplastic/colorplastic.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Configuración de seguridad básica
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+}

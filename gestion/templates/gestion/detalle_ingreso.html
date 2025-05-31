@@ -1,0 +1,221 @@
+{% extends 'gestion/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-alt"></i> Detalle de Ingreso</h2>
+                <div>
+                    <a href="{% url 'gestion:ingreso_materiales' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                    <button class="btn btn-primary" onclick="imprimirDetalle()">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del ingreso -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información del Movimiento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">ID Movimiento:</dt>
+                                <dd class="col-sm-7"><code>{{ movimiento.id_movimiento }}</code></dd>
+                                
+                                <dt class="col-sm-5">Fecha de Ingreso:</dt>
+                                <dd class="col-sm-7">{{ movimiento.fecha|date:"d/m/Y H:i" }}</dd>
+                                
+                                <dt class="col-sm-5">Tipo de Movimiento:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-success">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                </dd>
+                                
+                                <dt class="col-sm-5">Cantidad:</dt>
+                                <dd class="col-sm-7">
+                                    <strong>{{ movimiento.cantidad|floatformat:2 }} {{ lote.unidad_medida }}</strong>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Proveedor:</dt>
+                                <dd class="col-sm-7">
+                                    {% if movimiento.id_origen_tercero %}
+                                        {{ movimiento.id_origen_tercero.nombre }}
+                                        <br><small class="text-muted">{{ movimiento.id_origen_tercero.tipo }}</small>
+                                    {% else %}
+                                        <span class="text-muted">Sin especificar</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-5">Bodega Destino:</dt>
+                                <dd class="col-sm-7">{{ movimiento.id_destino_bodega.nombre }}</dd>
+                                
+                                <dt class="col-sm-5">Factura/Remisión:</dt>
+                                <dd class="col-sm-7">
+                                    {% if movimiento.factura_remision %}
+                                        <code>{{ movimiento.factura_remision }}</code>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-5">Soporte:</dt>
+                                <dd class="col-sm-7">
+                                    {% if movimiento.consecutivo_soporte %}
+                                        <code>{{ movimiento.consecutivo_soporte }}</code>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    {% if movimiento.observaciones %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <dt>Observaciones:</dt>
+                            <dd class="mt-2">
+                                <div class="alert alert-info">
+                                    {{ movimiento.observaciones }}
+                                </div>
+                            </dd>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información del lote -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-box"></i> Información del Lote</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-6">Número de Lote:</dt>
+                        <dd class="col-sm-6">
+                            <strong>{{ lote.numero_lote }}</strong>
+                        </dd>
+                        
+                        <dt class="col-sm-6">Material:</dt>
+                        <dd class="col-sm-6">
+                            {{ lote.id_material.nombre }}
+                            <br><small class="text-muted">{{ lote.id_material.tipo }}</small>
+                        </dd>
+                        
+                        <dt class="col-sm-6">Cantidad Inicial:</dt>
+                        <dd class="col-sm-6">{{ lote.cantidad_inicial|floatformat:2 }} {{ lote.unidad_medida }}</dd>
+                        
+                        <dt class="col-sm-6">Cantidad Actual:</dt>
+                        <dd class="col-sm-6">
+                            <span class="badge bg-{% if lote.cantidad_actual > 0 %}success{% else %}danger{% endif %}">
+                                {{ lote.cantidad_actual|floatformat:2 }} {{ lote.unidad_medida }}
+                            </span>
+                        </dd>
+                        
+                        <dt class="col-sm-6">Estado:</dt>
+                        <dd class="col-sm-6">
+                            <span class="badge bg-{% if lote.activo %}success{% else %}secondary{% endif %}">
+                                {% if lote.activo %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </dd>
+                        
+                        {% if lote.clasificacion %}
+                        <dt class="col-sm-6">Clasificación:</dt>
+                        <dd class="col-sm-6">
+                            <span class="badge bg-primary">{{ lote.clasificacion }}</span>
+                        </dd>
+                        {% endif %}
+                        
+                        {% if lote.fecha_vencimiento %}
+                        <dt class="col-sm-6">Vencimiento:</dt>
+                        <dd class="col-sm-6">{{ lote.fecha_vencimiento|date:"d/m/Y" }}</dd>
+                        {% endif %}
+                        
+                        {% if lote.costo_unitario %}
+                        <dt class="col-sm-6">Costo Unitario:</dt>
+                        <dd class="col-sm-6">${{ lote.costo_unitario|floatformat:2 }}</dd>
+                        {% endif %}
+                    </dl>
+                    
+                    {% if lote.observaciones %}
+                    <div class="mt-3">
+                        <dt>Observaciones del Lote:</dt>
+                        <dd class="mt-2">
+                            <small class="text-muted">{{ lote.observaciones }}</small>
+                        </dd>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones adicionales -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs"></i> Acciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'gestion:inventario_global' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-warehouse"></i> Ver Inventario Global
+                        </a>
+                        <button class="btn btn-outline-info" onclick="imprimirEtiqueta('{{ lote.numero_lote }}')">
+                            <i class="fas fa-tag"></i> Imprimir Etiqueta del Lote
+                        </button>
+                        <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.id_lote }}" class="btn btn-outline-warning">
+                            <i class="fas fa-exchange-alt"></i> Trasladar Material
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function imprimirDetalle() {
+    window.print();
+}
+
+function imprimirEtiqueta(numeroLote) {
+    alert('Funcionalidad de impresión de etiqueta para el lote: ' + numeroLote);
+    // Aquí se puede implementar la lógica de impresión de etiquetas
+}
+
+// Estilos para impresión
+const style = document.createElement('style');
+style.textContent = `
+    @media print {
+        .btn, .card-header, nav, footer {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #000 !important;
+            box-shadow: none !important;
+        }
+        .container {
+            max-width: 100% !important;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

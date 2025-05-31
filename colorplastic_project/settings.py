@@ -32,9 +32,9 @@ else:
     SECRET_KEY = 'django-insecure-b1zhryeeemwm)a(ql9z3_^!+sz^6h)lhi0&-+q493qz)#9@(eb'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('GAE_APPLICATION', None) is None
+DEBUG = os.getenv('GAE_APPLICATION', None) is None and os.getenv('COMPUTE_ENGINE', None) is None
 
-ALLOWED_HOSTS = ['colorplastic.uc.r.appspot.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['colorplastic.uc.r.appspot.com', 'localhost', '127.0.0.1', '*']  # Agregamos '*' temporalmente, cambiar por la IP real
 
 # Application definition
 
@@ -92,6 +92,18 @@ if os.getenv('GAE_APPLICATION', None):
             'USER': 'colorplastic',
             'PASSWORD': 'ColorPlastic2024!',
             'HOST': '/cloudsql/colorplastic:us-central1:colorplastic-db',
+            'PORT': '5432',
+        }
+    }
+elif os.getenv('COMPUTE_ENGINE', None):
+    # Running on Compute Engine - use local PostgreSQL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'colorplastic',
+            'USER': 'colorplastic',
+            'PASSWORD': 'ColorPlastic2024!',
+            'HOST': 'localhost',
             'PORT': '5432',
         }
     }

@@ -1,193 +1,432 @@
 {% extends 'gestion/base.html' %}
+{% load static %}
 
-{% block title %}Producción - ColorPlastic{% endblock %}
+{% block title %}Dashboard de Producción - ColorPlastic{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Producción</h5>
-                <div class="btn-group">
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}" class="btn btn-primary">
-                        Nuevo Molido
-                    </a>
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'lavado' %}" class="btn btn-primary">
-                        Nuevo Lavado
-                    </a>
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'peletizado' %}" class="btn btn-primary">
-                        Nuevo Peletizado
-                    </a>
-                    <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="btn btn-primary">
-                        Nueva Inyección
-                    </a>
+<div class="container fade-in-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-gear-fill me-2"></i>Dashboard de Producción</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-plus-circle me-2"></i>Nuevo Proceso
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}">
+                    <i class="bi bi-gear me-2"></i>Molido
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'gestion:nuevo_proceso_produccion' 'lavado' %}">
+                    <i class="bi bi-droplet me-2"></i>Lavado
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'gestion:nuevo_proceso_produccion' 'peletizado' %}">
+                    <i class="bi bi-circle me-2"></i>Peletizado
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}">
+                    <i class="bi bi-arrow-up-circle me-2"></i>Inyección
+                </a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_procesos_hoy }}</div>
+                        <div class="stat-label">Procesos Hoy</div>
+                    </div>
+                    <i class="bi bi-speedometer2 process-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ eficiencia_promedio|floatformat:1 }}%</div>
+                        <div class="stat-label">Eficiencia Promedio</div>
+                    </div>
+                    <i class="bi bi-graph-up process-icon text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_producido_kg|floatformat:0 }}</div>
+                        <div class="stat-label">kg Producidos Hoy</div>
+                    </div>
+                    <i class="bi bi-box process-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number text-warning">{{ paros_activos }}</div>
+                        <div class="stat-label">Paros Activos</div>
+                    </div>
+                    <i class="bi bi-pause-circle process-icon text-warning"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Producción Molido -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Molido Reciente</h5>
-            </div>
-            <div class="card-body">
-                {% if molido_reciente %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Lote</th>
-                                <th>Cantidad Entrada</th>
-                                <th>Cantidad Salida</th>
-                                <th>Eficiencia</th>
-                                <th>OT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for prod in molido_reciente %}
-                            <tr>
-                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
-                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
-                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
-                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
-                                <td>{{ prod.orden_trabajo }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- Procesos de Producción -->
+    <div class="row">
+        <!-- Molido -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-gear me-2"></i>Molido
+                            <span class="badge bg-light text-dark ms-2">{{ molido_reciente|length }}</span>
+                        </h5>
+                        <a href="{% url 'gestion:produccion_molido' %}" class="btn btn-sm btn-outline-primary">
+                            Ver Todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
-                {% else %}
-                <p class="text-muted">No hay registros de molido recientes.</p>
-                {% endif %}
+                <div class="card-body">
+                    {% if molido_reciente %}
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>OT</th>
+                                    <th>Cantidad</th>
+                                    <th>Eficiencia</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in molido_reciente %}
+                                <tr>
+                                    <td>{{ prod.fecha|date:"d/m H:i" }}</td>
+                                    <td>{{ prod.orden_trabajo|default:"N/A" }}</td>
+                                    <td>{{ prod.cantidad_salida|floatformat:1 }} kg</td>
+                                    <td>
+                                        <span class="badge {% if prod.eficiencia >= 95 %}bg-success{% elif prod.eficiencia >= 85 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ prod.eficiencia|floatformat:1 }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'gestion:editar_produccion_molido' prod.id_produccion %}" 
+                                               class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="eliminarProduccion('molido', '{{ prod.id_produccion }}')" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay registros de molido recientes.</p>
+                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'molido' %}" class="btn btn-primary btn-sm">
+                            Crear Proceso de Molido
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Lavado -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-droplet me-2"></i>Lavado
+                            <span class="badge bg-light text-dark ms-2">{{ lavado_reciente|length }}</span>
+                        </h5>
+                        <a href="{% url 'gestion:produccion_lavado' %}" class="btn btn-sm btn-outline-primary">
+                            Ver Todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if lavado_reciente %}
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>OT</th>
+                                    <th>Cantidad</th>
+                                    <th>Eficiencia</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in lavado_reciente %}
+                                <tr>
+                                    <td>{{ prod.fecha|date:"d/m H:i" }}</td>
+                                    <td>{{ prod.orden_trabajo|default:"N/A" }}</td>
+                                    <td>{{ prod.cantidad_salida|floatformat:1 }} kg</td>
+                                    <td>
+                                        <span class="badge {% if prod.eficiencia >= 95 %}bg-success{% elif prod.eficiencia >= 85 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ prod.eficiencia|floatformat:1 }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'gestion:editar_produccion_lavado' prod.id_produccion %}" 
+                                               class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="eliminarProduccion('lavado', '{{ prod.id_produccion }}')" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay registros de lavado recientes.</p>
+                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'lavado' %}" class="btn btn-primary btn-sm">
+                            Crear Proceso de Lavado
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Peletizado -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-circle me-2"></i>Peletizado
+                            <span class="badge bg-light text-dark ms-2">{{ peletizado_reciente|length }}</span>
+                        </h5>
+                        <a href="{% url 'gestion:produccion_peletizado' %}" class="btn btn-sm btn-outline-primary">
+                            Ver Todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if peletizado_reciente %}
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>OT</th>
+                                    <th>Cantidad</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in peletizado_reciente %}
+                                <tr>
+                                    <td>{{ prod.fecha|date:"d/m H:i" }}</td>
+                                    <td>{{ prod.orden_trabajo|default:"N/A" }}</td>
+                                    <td>{{ prod.cantidad_salida|floatformat:1 }} kg</td>
+                                    <td>
+                                        {% if prod.completado %}
+                                            <span class="status-badge status-active">Completado</span>
+                                        {% else %}
+                                            <span class="status-badge status-paused">En Proceso</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'gestion:editar_produccion_peletizado' prod.id_produccion %}" 
+                                               class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="eliminarProduccion('peletizado', '{{ prod.id_produccion }}')" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay registros de peletizado recientes.</p>
+                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'peletizado' %}" class="btn btn-primary btn-sm">
+                            Crear Proceso de Peletizado
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Inyección -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-arrow-up-circle me-2"></i>Inyección
+                            <span class="badge bg-light text-dark ms-2">{{ inyeccion_reciente|length }}</span>
+                        </h5>
+                        <a href="{% url 'gestion:produccion_inyeccion' %}" class="btn btn-sm btn-outline-primary">
+                            Ver Todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if inyeccion_reciente %}
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>OT</th>
+                                    <th>Cantidad</th>
+                                    <th>Mezclas</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in inyeccion_reciente %}
+                                <tr>
+                                    <td>{{ prod.fecha|date:"d/m H:i" }}</td>
+                                    <td>{{ prod.orden_trabajo|default:"N/A" }}</td>
+                                    <td>{{ prod.cantidad_salida|floatformat:1 }} kg</td>
+                                    <td>{{ prod.numero_mezclas }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'gestion:editar_produccion_inyeccion' prod.id_produccion %}" 
+                                               class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="eliminarProduccion('inyeccion', '{{ prod.id_produccion }}')" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay registros de inyección recientes.</p>
+                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="btn btn-primary btn-sm">
+                            Crear Proceso de Inyección
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Producción Lavado -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Lavado Reciente</h5>
-            </div>
-            <div class="card-body">
-                {% if lavado_reciente %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Lote</th>
-                                <th>Cantidad Entrada</th>
-                                <th>Cantidad Salida</th>
-                                <th>Eficiencia</th>
-                                <th>OT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for prod in lavado_reciente %}
-                            <tr>
-                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
-                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
-                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
-                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
-                                <td>{{ prod.orden_trabajo }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- Enlaces a Vistas Adicionales -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-industrial">
+                <div class="card-header card-header-inventory">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-layers me-2"></i>Gestión Adicional
+                    </h5>
                 </div>
-                {% else %}
-                <p class="text-muted">No hay registros de lavado recientes.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Producción Peletizado -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Peletizado Reciente</h5>
-            </div>
-            <div class="card-body">
-                {% if peletizado_reciente %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Lote</th>
-                                <th>Cantidad Entrada</th>
-                                <th>Cantidad Salida</th>
-                                <th>Eficiencia</th>
-                                <th>OT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for prod in peletizado_reciente %}
-                            <tr>
-                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
-                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
-                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
-                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
-                                <td>{{ prod.orden_trabajo }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:produccion_consumo' %}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-arrow-down-circle me-2"></i>Consumos de Producción
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:residuos_produccion' %}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-recycle me-2"></i>Residuos de Producción
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:motivos_paro' %}" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-pause-circle me-2"></i>Motivos de Paro
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:maquinas' %}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-gear me-2"></i>Gestión de Máquinas
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                {% else %}
-                <p class="text-muted">No hay registros de peletizado recientes.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Producción Inyección -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Inyección Reciente</h5>
-            </div>
-            <div class="card-body">
-                {% if inyeccion_reciente %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Lote</th>
-                                <th>Cantidad Entrada</th>
-                                <th>Cantidad Salida</th>
-                                <th>Eficiencia</th>
-                                <th>OT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for prod in inyeccion_reciente %}
-                            <tr>
-                                <td>{{ prod.fecha|date:"d/m/Y H:i" }}</td>
-                                <td>{{ prod.id_lote_producido.numero_lote }}</td>
-                                <td>{{ prod.cantidad_entrada|floatformat:2 }}</td>
-                                <td>{{ prod.cantidad_salida|floatformat:2 }}</td>
-                                <td>{{ prod.eficiencia|floatformat:2 }}%</td>
-                                <td>{{ prod.orden_trabajo }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted">No hay registros de inyección recientes.</p>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/colorplastic-ux.js' %}"></script>
+<script>
+function eliminarProduccion(tipo, id) {
+    if (confirm('¿Está seguro de eliminar este registro de producción?')) {
+        fetch(`/gestion/produccion/${tipo}/eliminar/${id}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                ColorPlastic.showToast('Registro eliminado exitosamente', 'success');
+                location.reload();
+            } else {
+                ColorPlastic.showToast('Error al eliminar el registro', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            ColorPlastic.showToast('Error de conexión', 'danger');
+        });
+    }
+}
+
+// Auto-refresh cada 30 segundos para datos en tiempo real
+setInterval(function() {
+    // Solo recargar si no hay modales abiertos
+    if (!document.querySelector('.modal.show')) {
+        location.reload();
+    }
+}, 30000);
+</script>
 {% endblock %}

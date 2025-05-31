@@ -1,0 +1,122 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Editar Despacho{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Editar Despacho {{ despacho.numero_remision }}</h2>
+    <a href="{% url 'gestion:detalle_despacho' despacho.id %}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Volver al Despacho
+    </a>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5>Información del Despacho</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Número de Remisión *</label>
+                  <input type="text" name="numero_remision" class="form-control" 
+                         value="{{ despacho.numero_remision }}" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Fecha de Despacho</label>
+                  <input type="date" name="fecha_despacho" class="form-control" 
+                         value="{% if despacho.fecha_despacho %}{{ despacho.fecha_despacho|date:'Y-m-d' }}{% endif %}">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Tercero (Cliente) *</label>
+                  <select name="tercero" class="form-select" required>
+                    {% for t in terceros %}
+                    <option value="{{ t.id_tercero }}" {% if t.id_tercero == despacho.tercero.id_tercero %}selected{% endif %}>
+                      {{ t.nombre }} ({{ t.tipo }})
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Estado</label>
+                  <select name="estado" class="form-select">
+                    {% for value, label in estados %}
+                    <option value="{{ value }}" {% if value == despacho.estado %}selected{% endif %}>
+                      {{ label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Dirección de Entrega *</label>
+              <input type="text" name="direccion_entrega" class="form-control" 
+                     value="{{ despacho.direccion_entrega }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Observaciones</label>
+              <textarea name="observaciones" class="form-control" rows="4">{{ despacho.observaciones }}</textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar Cambios
+              </button>
+              <a href="{% url 'gestion:detalle_despacho' despacho.id %}" class="btn btn-secondary">
+                Cancelar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h6>Información Adicional</h6>
+        </div>
+        <div class="card-body">
+          <p><strong>Fecha de Creación:</strong><br>{{ despacho.fecha_creacion|date:'d/m/Y H:i' }}</p>
+          <p><strong>Usuario Creación:</strong><br>{{ despacho.usuario_creacion.username }}</p>
+          <p><strong>Estado Actual:</strong><br>
+            <span class="badge bg-{% if despacho.estado == 'pendiente' %}warning{% elif despacho.estado == 'despachado' %}success{% elif despacho.estado == 'cancelado' %}danger{% else %}info{% endif %}">
+              {{ despacho.get_estado_display }}
+            </span>
+          </p>
+          
+          {% if despacho.detalles.exists %}
+          <hr>
+          <p><strong>Productos en Despacho:</strong></p>
+          <ul class="list-unstyled">
+            {% for detalle in despacho.detalles.all %}
+            <li class="small">
+              <i class="bi bi-box"></i> {{ detalle.producto.numero_lote }}<br>
+              <span class="text-muted">{{ detalle.cantidad }} kg</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

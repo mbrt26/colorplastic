@@ -92,5 +92,48 @@ def procesar_movimiento_inventario(tipo_movimiento, lote, cantidad, bodega_orige
             id_destino_bodega=bodega_destino,
             **kwargs
         )
-        
+
         return movimiento
+
+
+def revert_movimiento_inventario(movimiento: MovimientosInventario):
+    """Revierte un movimiento de inventario de manera atómica."""
+    with transaction.atomic():
+        lote = Lotes.objects.select_for_update().get(pk=movimiento.id_lote.pk)
+
+        if movimiento.tipo_movimiento in ["IngresoServicio", "Compra", "AjustePositivo"]:
+            # Revertir entradas restando stock
+            if lote.cantidad_actual < movimiento.cantidad:
+                raise ValidationError(
+                    f"Stock insuficiente para revertir movimiento en {lote.numero_lote}"
+                )
+            lote.cantidad_actual -= movimiento.cantidad
+
+        elif movimiento.tipo_movimiento in [
+            "ConsumoProduccion",
+            "Venta",
+            "AjusteNegativo",
+            "SalidaServicio",
+        ]:
+            # Revertir salidas sumando stock
+            lote.cantidad_actual += movimiento.cantidad
+
+        elif movimiento.tipo_movimiento == "Traslado":
+            # Para efectos de estas pruebas no se usa, pero se deja soporte básico
+            if movimiento.id_destino_bodega:
+                if lote.cantidad_actual < movimiento.cantidad:
+                    raise ValidationError(
+                        f"Stock insuficiente para revertir traslado en {lote.numero_lote}"
+                    )
+                lote.cantidad_actual -= movimiento.cantidad
+            if movimiento.id_origen_bodega:
+                lote.id_bodega_actual = movimiento.id_origen_bodega
+
+        else:
+            raise ValidationError(
+                f"Tipo de movimiento no soportado para reversión: {movimiento.tipo_movimiento}"
+            )
+
+        lote.activo = lote.cantidad_actual > Decimal("0")
+        lote.save()
+        movimiento.delete()

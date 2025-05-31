@@ -10,15 +10,10 @@ from django.contrib.auth.models import User  # Import User model
 
 class Materiales(models.Model):
     TIPO_MATERIAL_CHOICES = [
-        ('Molido', 'Molido'),
-        ('Lavado', 'Lavado'),
-        ('Peletizado', 'Peletizado'),
-        ('Inyeccion', 'Inyección'),
-        ('Original', 'Original'),
-        ('Entero', 'Entero'),
-        ('Aglutinada', 'Aglutinada'),
-        ('Pigmento', 'Pigmento'),
-        ('Aditivo', 'Aditivo'),
+        ('MP', 'Materia Prima'),
+        ('PI', 'Producto Intermedio'),
+        ('PT', 'Producto Terminado'),
+        ('IN', 'Insumo'),
     ]
     id_material = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
@@ -377,11 +372,15 @@ class ProduccionConsumo(models.Model):
     id_bodega_origen = models.ForeignKey(Bodegas, on_delete=models.PROTECT, verbose_name='Bodega Origen Consumo')
 
     def get_produccion_padre(self):
-        # Método helper para obtener la referencia a la producción padre
-        if self.id_produccion_molido: return self.id_produccion_molido
-        if self.id_produccion_lavado: return self.id_produccion_lavado
-        if self.id_produccion_peletizado: return self.id_produccion_peletizado
-        if self.id_produccion_inyeccion: return self.id_produccion_inyeccion
+        """Devuelve la producción padre sin lanzar errores si fue eliminada."""
+        if self.id_produccion_molido_id:
+            return ProduccionMolido.objects.filter(pk=self.id_produccion_molido_id).first()
+        if self.id_produccion_lavado_id:
+            return ProduccionLavado.objects.filter(pk=self.id_produccion_lavado_id).first()
+        if self.id_produccion_peletizado_id:
+            return ProduccionPeletizado.objects.filter(pk=self.id_produccion_peletizado_id).first()
+        if self.id_produccion_inyeccion_id:
+            return ProduccionInyeccion.objects.filter(pk=self.id_produccion_inyeccion_id).first()
         return None
 
     def save(self, *args, **kwargs):
@@ -502,38 +501,49 @@ class ResiduosProduccion(models.Model):
         verbose_name_plural = 'Residuos de Producción'
         ordering = ['-fecha']
 
+
 # --- Fin Modelos de Producción ---
 
+
 class Despacho(models.Model):
+    """Cabecera de un despacho de materiales hacia un tercero."""
+
     ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('en_proceso', 'En Proceso'),
-        ('despachado', 'Despachado'),
-        ('cancelado', 'Cancelado'),
+        ("pendiente", "Pendiente"),
+        ("en_proceso", "En Proceso"),
+        ("despachado", "Despachado"),
+        ("cancelado", "Cancelado"),
     ]
 
     numero_remision = models.CharField(max_length=50, unique=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_despacho = models.DateTimeField(null=True, blank=True)
-    tercero = models.ForeignKey('Terceros', on_delete=models.PROTECT, related_name='despachos')
+    fecha_despacho = models.DateTimeField(blank=True, null=True)
     direccion_entrega = models.CharField(max_length=255)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="pendiente")
     observaciones = models.TextField(blank=True)
-    usuario_creacion = models.ForeignKey(User, on_delete=models.PROTECT, related_name='despachos_creados')
-    
+    tercero = models.ForeignKey(Terceros, on_delete=models.PROTECT, related_name="despachos")
+    usuario_creacion = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="despachos_creados",
+    )
+
     class Meta:
-        ordering = ['-fecha_creacion']
-        verbose_name = 'Despacho'
-        verbose_name_plural = 'Despachos'
+        verbose_name = "Despacho"
+        verbose_name_plural = "Despachos"
+        ordering = ["-fecha_creacion"]
 
     def __str__(self):
-        return f"Despacho #{self.numero_remision} - {self.tercero}"
+        return f"{self.numero_remision} - {self.tercero.nombre}"
+
 
 class DetalleDespacho(models.Model):
-    despacho = models.ForeignKey(Despacho, on_delete=models.CASCADE, related_name='detalles')
-    producto = models.ForeignKey('Lotes', on_delete=models.PROTECT)
+    """Detalle de los productos incluidos en un despacho."""
+
+    despacho = models.ForeignKey(Despacho, on_delete=models.CASCADE, related_name="detalles")
+    producto = models.ForeignKey(Lotes, on_delete=models.PROTECT)
+    bodega_origen = models.ForeignKey(Bodegas, on_delete=models.PROTECT)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    bodega_origen = models.ForeignKey('Bodegas', on_delete=models.PROTECT)
-    
+
     def __str__(self):
-        return f"{self.despacho.numero_remision} - {self.producto} ({self.cantidad})"
+        return f"{self.producto.numero_lote} - {self.cantidad}"

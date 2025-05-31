@@ -1,0 +1,273 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Detalle Ingreso {{ lote.numero_lote }} - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'gestion:dashboard' %}">Dashboard</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'gestion:ingreso_materiales' %}">Ingreso de Materiales</a>
+                </li>
+                <li class="breadcrumb-item active">{{ lote.numero_lote }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-info-circle me-2 text-primary"></i>
+                Detalle del Ingreso
+            </h2>
+            <a href="{% url 'gestion:ingreso_materiales' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Información del Ingreso -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-truck me-2"></i>
+                    Información del Ingreso
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Fecha de Ingreso</h6>
+                        <p class="mb-3">
+                            <i class="bi bi-calendar me-1"></i>
+                            {{ movimiento.fecha|date:"d/m/Y H:i" }}
+                        </p>
+
+                        <h6 class="text-muted">Proveedor</h6>
+                        <p class="mb-3">
+                            <i class="bi bi-building me-1"></i>
+                            <strong>{{ movimiento.id_origen_tercero.nombre }}</strong>
+                            {% if movimiento.id_origen_tercero.identificacion %}
+                                <br><small class="text-muted">NIT: {{ movimiento.id_origen_tercero.identificacion }}</small>
+                            {% endif %}
+                        </p>
+
+                        <h6 class="text-muted">Factura/Remisión</h6>
+                        <p class="mb-3">
+                            {% if movimiento.factura_remision %}
+                                <i class="bi bi-receipt me-1"></i>
+                                {{ movimiento.factura_remision }}
+                            {% else %}
+                                <span class="text-muted">No especificada</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Bodega de Destino</h6>
+                        <p class="mb-3">
+                            <i class="bi bi-house me-1"></i>
+                            <strong>{{ movimiento.id_destino_bodega.nombre }}</strong>
+                        </p>
+
+                        <h6 class="text-muted">Cantidad Ingresada</h6>
+                        <p class="mb-3">
+                            <span class="badge bg-primary fs-6">
+                                <i class="bi bi-calculator me-1"></i>
+                                {{ movimiento.cantidad|floatformat:2 }} kg
+                            </span>
+                        </p>
+
+                        <h6 class="text-muted">Observaciones</h6>
+                        <p class="mb-3">
+                            {% if movimiento.observaciones %}
+                                {{ movimiento.observaciones }}
+                            {% else %}
+                                <span class="text-muted">Sin observaciones</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del Lote -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-tag me-2"></i>
+                    Información del Lote
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6 class="text-muted">Número de Lote</h6>
+                <p class="mb-3">
+                    <strong>{{ lote.numero_lote }}</strong>
+                </p>
+
+                <h6 class="text-muted">Material</h6>
+                <p class="mb-3">
+                    <span class="badge bg-secondary">{{ lote.id_material.tipo }}</span>
+                    <br>
+                    <strong>{{ lote.id_material.nombre }}</strong>
+                </p>
+
+                <h6 class="text-muted">Cantidad Actual</h6>
+                <p class="mb-3">
+                    <strong class="text-success">{{ lote.cantidad_actual|floatformat:2 }} kg</strong>
+                    {% if lote.cantidad_actual < lote.cantidad_inicial %}
+                        <br><small class="text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Inicial: {{ lote.cantidad_inicial|floatformat:2 }} kg
+                        </small>
+                    {% endif %}
+                </p>
+
+                {% if lote.fecha_vencimiento %}
+                <h6 class="text-muted">Fecha de Vencimiento</h6>
+                <p class="mb-3">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    {{ lote.fecha_vencimiento|date:"d/m/Y" }}
+                </p>
+                {% endif %}
+
+                {% if lote.costo_unitario %}
+                <h6 class="text-muted">Costo Unitario</h6>
+                <p class="mb-3">
+                    <i class="bi bi-currency-dollar me-1"></i>
+                    ${{ lote.costo_unitario|floatformat:2 }}
+                </p>
+                {% endif %}
+
+                {% if lote.clasificacion %}
+                <h6 class="text-muted">Clasificación</h6>
+                <p class="mb-3">
+                    <span class="badge bg-warning text-dark">
+                        Calidad {{ lote.clasificacion }}
+                    </span>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historial de Movimientos del Lote -->
+{% if historial_lote %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Historial de Movimientos del Lote
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in historial_lote %}
+                            <tr>
+                                <td>
+                                    <small>{{ mov.fecha|date:"d/m/Y H:i" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if mov.tipo_movimiento == 'Compra' %}success{% elif mov.tipo_movimiento == 'Traslado' %}primary{% elif mov.tipo_movimiento == 'Venta' %}danger{% else %}secondary{% endif %}">
+                                        {{ mov.tipo_movimiento }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>{{ mov.cantidad|floatformat:2 }} kg</strong>
+                                </td>
+                                <td>
+                                    {% if mov.id_origen_bodega %}
+                                        <i class="bi bi-house me-1"></i>{{ mov.id_origen_bodega.nombre }}
+                                    {% elif mov.id_origen_tercero %}
+                                        <i class="bi bi-building me-1"></i>{{ mov.id_origen_tercero.nombre }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mov.id_destino_bodega %}
+                                        <i class="bi bi-house me-1"></i>{{ mov.id_destino_bodega.nombre }}
+                                    {% elif mov.id_destino_tercero %}
+                                        <i class="bi bi-building me-1"></i>{{ mov.id_destino_tercero.nombre }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mov.observaciones %}
+                                        <small>{{ mov.observaciones|truncatechars:50 }}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Acciones Adicionales -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-tools me-2"></i>
+                    Acciones Disponibles
+                </h6>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'gestion:traslado_form' %}?lote={{ lote.id_lote }}" 
+                       class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-right me-2"></i>
+                        Realizar Traslado
+                    </a>
+                    <a href="{% url 'gestion:inventario_global' %}?numero_lote={{ lote.numero_lote }}" 
+                       class="btn btn-outline-info">
+                        <i class="bi bi-search me-2"></i>
+                        Ver en Inventario
+                    </a>
+                    {% if lote.proveedor_origen %}
+                    <a href="{% url 'gestion:terceros' %}#{{ lote.proveedor_origen.id_tercero }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-building me-2"></i>
+                        Ver Proveedor
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -67,7 +67,7 @@ class InventarioCentralizadoTests(TestCase):
         prod = ProduccionMolido.objects.create(
             id_maquina=self.maquina_molido,
             id_operario=self.operario,
-            cantidad_producida=Decimal('10.00'),
+            cantidad_salida=Decimal('10.00'),
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_prod
         )
@@ -90,7 +90,7 @@ class InventarioCentralizadoTests(TestCase):
         prod = ProduccionMolido.objects.create(
             id_maquina=self.maquina_molido,
             id_operario=self.operario,
-            cantidad_producida=Decimal('25.00'),
+            cantidad_salida=Decimal('25.00'),
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_prod
         )
@@ -107,7 +107,7 @@ class InventarioCentralizadoTests(TestCase):
         prod = ProduccionMolido.objects.create(
             id_maquina=self.maquina_molido,
             id_operario=self.operario,
-            cantidad_producida=Decimal('10.00'),
+            cantidad_salida=Decimal('10.00'),
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_prod
         )
@@ -142,7 +142,7 @@ class InventarioCentralizadoTests(TestCase):
         produccion = ProduccionMolido.objects.create(
             id_maquina=self.maquina_molido,
             id_operario=self.operario,
-            cantidad_producida=Decimal('50.00'),  # Producimos 50 kg de material molido
+            cantidad_salida=Decimal('50.00'),  # Producimos 50 kg de material molido
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_molido,
             orden_trabajo="OT-MOLIDO-001"
@@ -195,7 +195,7 @@ class InventarioCentralizadoTests(TestCase):
         prod_molido = ProduccionMolido.objects.create(
             id_maquina=self.maquina_molido,
             id_operario=self.operario,
-            cantidad_producida=Decimal('950.00'),  # 95% eficiencia (50kg de merma)
+            cantidad_salida=Decimal('950.00'),  # 95% eficiencia (50kg de merma)
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_molido,
             orden_trabajo="OT-MOLIDO-001"
@@ -221,7 +221,7 @@ class InventarioCentralizadoTests(TestCase):
         prod_lavado = ProduccionLavado.objects.create(
             id_maquina=self.maquina_lavado,
             id_operario=self.operario,
-            cantidad_producida=Decimal('900.00'),  # 95% eficiencia del molido (50kg merma)
+            cantidad_salida=Decimal('900.00'),  # 95% eficiencia del molido (50kg merma)
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_lavado,
             orden_trabajo="OT-LAVADO-001"
@@ -249,7 +249,7 @@ class InventarioCentralizadoTests(TestCase):
         prod_peletizado = ProduccionPeletizado.objects.create(
             id_maquina=self.maquina_peletizado,
             id_operario=self.operario,
-            cantidad_producida=Decimal('880.00'),  # 98% eficiencia del lavado (20kg merma)
+            cantidad_salida=Decimal('880.00'),  # 98% eficiencia del lavado (20kg merma)
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_peletizado,
             orden_trabajo="OT-PELET-001"
@@ -277,7 +277,7 @@ class InventarioCentralizadoTests(TestCase):
         prod_inyeccion = ProduccionInyeccion.objects.create(
             id_maquina=self.maquina_inyeccion,
             id_operario=self.operario,
-            cantidad_producida=Decimal('850.00'),  # 97% eficiencia del peletizado (30kg merma)
+            cantidad_salida=Decimal('850.00'),  # 97% eficiencia del peletizado (30kg merma)
             id_bodega_destino=self.bodega,
             id_lote_producido=lote_inyeccion,
             orden_trabajo="OT-INYEC-001"
@@ -350,3 +350,120 @@ class InventarioCentralizadoTests(TestCase):
         self.assertEqual(self.lote.cantidad_actual, Decimal('100.00'))
         # Verificar que el lote sigue activo
         self.assertTrue(self.lote.activo)
+
+    def test_eliminar_produccion_restaura_stock(self):
+        """Al eliminar una producción se debe revertir el ingreso en el lote."""
+        lote_prod = Lotes.objects.create(
+            numero_lote="DEL-PROD-001",
+            id_material=self.material,
+            cantidad_inicial=Decimal("0.00"),
+            id_bodega_actual=self.bodega,
+        )
+
+        prod = ProduccionMolido.objects.create(
+            id_maquina=self.maquina_molido,
+            id_operario=self.operario,
+            cantidad_salida=Decimal("20.00"),
+            id_bodega_destino=self.bodega,
+            id_lote_producido=lote_prod,
+        )
+
+        movimiento = MovimientosInventario.objects.get(produccion_referencia=str(prod.id_produccion))
+        lote_prod.refresh_from_db()
+        self.assertEqual(lote_prod.cantidad_actual, Decimal("20.00"))
+
+        prod.delete()
+
+        self.assertFalse(MovimientosInventario.objects.filter(pk=movimiento.pk).exists())
+        lote_prod.refresh_from_db()
+        self.assertEqual(lote_prod.cantidad_actual, Decimal("0.00"))
+        self.assertFalse(lote_prod.activo)
+
+    def test_eliminar_consumo_restaura_stock(self):
+        """Eliminar un consumo debe regresar la cantidad al lote original."""
+        lote_prod = Lotes.objects.create(
+            numero_lote="DEL-CONS-001",
+            id_material=self.material,
+            cantidad_inicial=Decimal("0.00"),
+            id_bodega_actual=self.bodega,
+        )
+
+        prod = ProduccionMolido.objects.create(
+            id_maquina=self.maquina_molido,
+            id_operario=self.operario,
+            cantidad_salida=Decimal("10.00"),
+            id_bodega_destino=self.bodega,
+            id_lote_producido=lote_prod,
+        )
+
+        consumo = ProduccionConsumo.objects.create(
+            id_produccion_molido=prod,
+            id_lote_consumido=self.lote,
+            cantidad_consumida=Decimal("30.00"),
+            id_bodega_origen=self.bodega,
+        )
+
+        movimiento = MovimientosInventario.objects.get(
+            produccion_referencia=str(prod.id_produccion),
+            id_lote=self.lote,
+            tipo_movimiento="ConsumoProduccion",
+        )
+
+        self.lote.refresh_from_db()
+        self.assertEqual(self.lote.cantidad_actual, Decimal("70.00"))
+
+        consumo.delete()
+
+        self.assertFalse(MovimientosInventario.objects.filter(pk=movimiento.pk).exists())
+        self.lote.refresh_from_db()
+        self.assertEqual(self.lote.cantidad_actual, Decimal("100.00"))
+
+    def test_eliminar_produccion_con_consumos_restaura_todo(self):
+        """Al eliminar una producción con consumos asociados se deben revertir todos los movimientos."""
+        lote_prod = Lotes.objects.create(
+            numero_lote="DEL-PROD-CONS-001",
+            id_material=self.material,
+            cantidad_inicial=Decimal("0.00"),
+            id_bodega_actual=self.bodega,
+        )
+
+        prod = ProduccionMolido.objects.create(
+            id_maquina=self.maquina_molido,
+            id_operario=self.operario,
+            cantidad_salida=Decimal("40.00"),
+            id_bodega_destino=self.bodega,
+            id_lote_producido=lote_prod,
+        )
+
+        consumo = ProduccionConsumo.objects.create(
+            id_produccion_molido=prod,
+            id_lote_consumido=self.lote,
+            cantidad_consumida=Decimal("40.00"),
+            id_bodega_origen=self.bodega,
+        )
+
+        mov_ingreso = MovimientosInventario.objects.get(
+            produccion_referencia=str(prod.id_produccion),
+            tipo_movimiento="IngresoServicio",
+        )
+        mov_consumo = MovimientosInventario.objects.get(
+            produccion_referencia=str(prod.id_produccion),
+            id_lote=self.lote,
+            tipo_movimiento="ConsumoProduccion",
+        )
+
+        lote_prod.refresh_from_db()
+        self.lote.refresh_from_db()
+        self.assertEqual(lote_prod.cantidad_actual, Decimal("40.00"))
+        self.assertEqual(self.lote.cantidad_actual, Decimal("60.00"))
+
+        prod.delete()
+
+        self.assertFalse(MovimientosInventario.objects.filter(pk=mov_ingreso.pk).exists())
+        self.assertFalse(MovimientosInventario.objects.filter(pk=mov_consumo.pk).exists())
+
+        lote_prod.refresh_from_db()
+        self.lote.refresh_from_db()
+        self.assertEqual(lote_prod.cantidad_actual, Decimal("0.00"))
+        self.assertFalse(lote_prod.activo)
+        self.assertEqual(self.lote.cantidad_actual, Decimal("100.00"))

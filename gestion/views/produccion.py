@@ -5,118 +5,23 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 from decimal import Decimal
-from .models import (
+from ..models import (
     Bodegas, Lotes, MovimientosInventario, 
     Materiales, Maquinas, Operarios, Terceros,
     ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion,
-    ResiduosProduccion, ProduccionConsumo, MotivoParo, ParosProduccion
+    ResiduosProduccion, ProduccionConsumo, MotivoParo, ParosProduccion,
+    Despacho, DetalleDespacho
 )
-from .inventario_utils import procesar_movimiento_inventario
+from ..inventario_utils import procesar_movimiento_inventario
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 import uuid
+import logging
+import json
+import traceback
 from django.utils import timezone
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from .models import Despacho, DetalleDespacho
-from django import forms
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
-
-class DespachoForm(forms.ModelForm):
-    class Meta:
-        model = Despacho
-        fields = ['numero_remision', 'tercero', 'direccion_entrega', 'estado', 'observaciones']
-        widgets = {
-            'observaciones': forms.Textarea(attrs={'rows': 3}),
-        }
-
-class DetalleDespachoFormSet(forms.BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-        total = 0
-        for form in self.forms:
-            if not form.is_valid():
-                continue
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                cantidad = form.cleaned_data.get('cantidad', 0)
-                if cantidad <= 0:
-                    raise forms.ValidationError('La cantidad debe ser mayor que cero.')
-                total += cantidad
-        if total <= 0:
-            raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
-
-DetalleDespachoFormSet = forms.inlineformset_factory(
-    Despacho, DetalleDespacho,
-    fields=['producto', 'cantidad', 'bodega_origen'],
-    extra=1,
-    can_delete=True,
-    formset=DetalleDespachoFormSet,
-)
-
-class DespachoListView(LoginRequiredMixin, ListView):
-    model = Despacho
-    template_name = 'gestion/despacho_list.html'
-    context_object_name = 'despachos'
-    ordering = ['-fecha_creacion']
-
-class DespachoCreateView(LoginRequiredMixin, CreateView):
-    model = Despacho
-    form_class = DespachoForm
-    template_name = 'gestion/despacho_form.html'
-    success_url = reverse_lazy('gestion:despacho_list')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = DetalleDespachoFormSet(self.request.POST)
-        else:
-            context['formset'] = DetalleDespachoFormSet()
-        return context
-
-    def form_valid(self, form):
-        form.instance.usuario_creacion = self.request.user
-        context = self.get_context_data()
-        formset = context['formset']
-        if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            return super().form_valid(form)
-        else:
-            return self.render_to_response(self.get_context_data(form=form))
-
-class DespachoUpdateView(LoginRequiredMixin, UpdateView):
-    model = Despacho
-    form_class = DespachoForm
-    template_name = 'gestion/despacho_form.html'
-    success_url = reverse_lazy('gestion:despacho_list')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = DetalleDespachoFormSet(
-                self.request.POST, instance=self.object)
-        else:
-            context['formset'] = DetalleDespachoFormSet(instance=self.object)
-        return context
-
-    def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            return super().form_valid(form)
-        else:
-            return self.render_to_response(self.get_context_data(form=form))
-
-class DespachoDetailView(LoginRequiredMixin, DetailView):
-    model = Despacho
-    template_name = 'gestion/despacho_detail.html'
-    context_object_name = 'despacho'
 
 @login_required
 def dashboard(request):
@@ -203,17 +108,86 @@ def traslado_form(request):
 @login_required
 def produccion_dashboard(request):
     """Dashboard de producción con estado actual de los procesos."""
+    from django.utils import timezone
+    from django.db.models import Sum, Avg, Count
+    from datetime import timedelta
+    
+    hoy = timezone.now().date()
+    inicio_dia = timezone.make_aware(timezone.datetime.combine(hoy, timezone.datetime.min.time()))
+    fin_dia = timezone.make_aware(timezone.datetime.combine(hoy, timezone.datetime.max.time()))
+    
+    # Obtener producciones recientes (últimas 5 de cada tipo)
+    molido_reciente = ProduccionMolido.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    lavado_reciente = ProduccionLavado.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    peletizado_reciente = ProduccionPeletizado.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    inyeccion_reciente = ProduccionInyeccion.objects.select_related(
+        'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
+    # Calcular estadísticas del día
+    procesos_hoy = (
+        ProduccionMolido.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionLavado.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionPeletizado.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).count()
+    )
+    
+    # Calcular eficiencia promedio del día
+    eficiencias = []
+    for modelo in [ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion]:
+        producciones = modelo.objects.filter(fecha__range=[inicio_dia, fin_dia])
+        for prod in producciones:
+            if prod.cantidad_entrada and prod.cantidad_entrada > 0:
+                eficiencias.append((prod.cantidad_salida / prod.cantidad_entrada) * 100)
+    
+    eficiencia_promedio = sum(eficiencias) / len(eficiencias) if eficiencias else 0
+    
+    # Calcular total producido hoy
+    total_producido = (
+        ProduccionMolido.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionLavado.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionPeletizado.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
+    )
+    
+    # Contar paros activos (sin fecha de fin)
+    paros_activos = ParosProduccion.objects.filter(fecha_hora_fin__isnull=True).count()
+    
     context = {
-        'molido_reciente': ProduccionMolido.objects.all().order_by('-fecha')[:5],
-        'lavado_reciente': ProduccionLavado.objects.all().order_by('-fecha')[:5],
-        'peletizado_reciente': ProduccionPeletizado.objects.all().order_by('-fecha')[:5],
-        'inyeccion_reciente': ProduccionInyeccion.objects.all().order_by('-fecha')[:5],
+        'molido_reciente': molido_reciente,
+        'lavado_reciente': lavado_reciente,
+        'peletizado_reciente': peletizado_reciente,
+        'inyeccion_reciente': inyeccion_reciente,
+        'total_procesos_hoy': procesos_hoy,
+        'eficiencia_promedio': eficiencia_promedio,
+        'total_producido_kg': total_producido,
+        'paros_activos': paros_activos,
     }
     return render(request, 'gestion/produccion_dashboard.html', context)
 
 @login_required
 def nuevo_proceso_produccion(request, tipo_proceso):
-    """Vista para iniciar un nuevo proceso de producción."""
+    """Vista para iniciar un nuevo proceso de producción.
+
+    El movimiento de inventario por consumos se genera automáticamente a
+    través de la señal ``post_save`` de :class:`ProduccionConsumo`.
+    """
     # Normalizar el tipo de proceso para que coincida con el almacenado en la base de datos
     tipo_proceso_mapping = {
         'molido': 'Molido',
@@ -362,31 +336,13 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                         logger.error(f"ERROR: Stock insuficiente - Disponible: {lote.cantidad_actual}, Requerido: {cantidad}")
                         raise ValidationError(f'Stock insuficiente para el lote {lote.numero_lote}. Disponible: {lote.cantidad_actual}, requerido: {cantidad}')
                     
-                    logger.error("Validaciones completas OK - Llamando a procesar_movimiento_inventario")
-                    
-                    # Procesar SOLO el consumo (salida de inventario)
-                    # La función procesar_movimiento_inventario hará toda la validación atómica
-                    try:
-                        movimiento = procesar_movimiento_inventario(
-                            tipo_movimiento='ConsumoProduccion',
-                            lote=lote,
-                            cantidad=cantidad,
-                            bodega_origen=lote.id_bodega_actual,
-                            bodega_destino=None,
-                            produccion_referencia=orden_trabajo,
-                            observaciones=f"Consumo para {tipo_proceso_normalizado} - OT: {orden_trabajo}"
-                        )
-                        
-                        logger.error(f"✓ Movimiento procesado exitosamente: {movimiento.id_movimiento}")
-                        
-                        # Verificar estado después
-                        lote.refresh_from_db()
-                        logger.error(f"Stock después: {lote.cantidad_actual}, Activo: {lote.activo}")
-                        
-                    except Exception as e:
-                        logger.error(f"ERROR al procesar movimiento: {str(e)}")
-                        logger.error(f"Tipo de error: {type(e).__name__}")
-                        raise e
+                    # El descuento de inventario ya no se realiza aquí.
+                    # Se delega a la señal post_save asociada a ProduccionConsumo
+                    # para evitar duplicar movimientos y garantizar consistencia.
+                    logger.error(
+                        "Validaciones completas OK - el movimiento de inventario "
+                        "será procesado por la señal post_save de ProduccionConsumo"
+                    )
                 
                 logger.error("=== LOTES PROCESADOS - REGISTRANDO PROCESO ===")
 
@@ -453,7 +409,6 @@ def nuevo_proceso_produccion(request, tipo_proceso):
         except Exception as e:
             logger.error(f"Exception general: {str(e)}")
             logger.error(f"Tipo: {type(e).__name__}")
-            import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             messages.error(request, f'Error al registrar el proceso: {str(e)}')
     
@@ -628,18 +583,29 @@ def editar_produccion_lavado(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
             produccion.observaciones = request.POST.get('observaciones')
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_lavado')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Lavado', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_lavado.html', context)
+    return render(request, 'gestion/editar_produccion_lavado.html', context)
 
 @login_required
 @transaction.atomic
@@ -649,18 +615,30 @@ def editar_produccion_peletizado(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            produccion.numero_mezclas = request.POST.get('numero_mezclas') or produccion.numero_mezclas
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
             produccion.observaciones = request.POST.get('observaciones')
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_peletizado')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Peletizado', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_peletizado.html', context)
+    return render(request, 'gestion/editar_produccion_peletizado.html', context)
 
 @login_required
 @transaction.atomic
@@ -789,18 +767,33 @@ def editar_produccion_molido(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            if 'merma' in request.POST:
+                produccion.merma = Decimal(request.POST.get('merma', '0'))
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
             produccion.observaciones = request.POST.get('observaciones')
+            if 'archivo_adjunto' in request.FILES:
+                produccion.archivo_adjunto = request.FILES['archivo_adjunto']
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_molido')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Molido', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_molido.html', context)
+    return render(request, 'gestion/editar_produccion_molido.html', context)
 
 @login_required
 @transaction.atomic
@@ -810,18 +803,31 @@ def editar_produccion_inyeccion(request, id):
     if request.method == 'POST':
         try:
             produccion.orden_trabajo = request.POST.get('orden_trabajo')
+            fecha_str = request.POST.get('fecha')
+            if fecha_str:
+                produccion.fecha = timezone.make_aware(datetime.fromisoformat(fecha_str))
             produccion.turno = request.POST.get('turno')
+            produccion.id_maquina_id = request.POST.get('id_maquina')
+            produccion.id_operario_id = request.POST.get('id_operario')
+            produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+            produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+            produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
+            if 'archivo_adjunto' in request.FILES:
+                produccion.archivo_adjunto = request.FILES['archivo_adjunto']
             produccion.observaciones = request.POST.get('observaciones')
             produccion.save()
             messages.success(request, 'Registro actualizado exitosamente.')
             return redirect('gestion:produccion_inyeccion')
         except Exception as e:
             messages.error(request, f'Error al actualizar el registro: {str(e)}')
-    
+
     context = {
         'produccion': produccion,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Inyeccion', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+        'bodegas': Bodegas.objects.all(),
     }
-    return render(request, 'gestion/produccion_inyeccion.html', context)
+    return render(request, 'gestion/editar_produccion_inyeccion.html', context)
 
 @login_required
 @transaction.atomic
@@ -1462,88 +1468,6 @@ def inventario_global(request):
     
     return render(request, 'gestion/inventario_global.html', context)
 
-@login_required
-def despacho_form(request):
-    """Vista para gestionar el despacho de materiales a clientes."""
-    # Obtener lote preseleccionado si viene en la URL
-    lote_id = request.GET.get('lote')
-    lote_preseleccionado = None
-    if (lote_id):
-        lote_preseleccionado = get_object_or_404(Lotes, pk=lote_id)
-
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                # Obtener datos del formulario
-                lote = get_object_or_404(Lotes, pk=request.POST.get('id_lote'))
-                cantidad = Decimal(request.POST.get('cantidad'))
-                destino_tercero = get_object_or_404(Terceros, pk=request.POST.get('id_destino_tercero'))
-                consecutivo_soporte = request.POST.get('consecutivo_soporte')
-                observaciones = request.POST.get('observaciones')
-
-                # Procesar el despacho como un movimiento de inventario
-                procesar_movimiento_inventario(
-                    tipo_movimiento='Venta',
-                    lote=lote,
-                    cantidad=cantidad,
-                    bodega_origen=lote.id_bodega_actual,
-                    id_destino_tercero=destino_tercero,
-                    consecutivo_soporte=consecutivo_soporte,
-                    observaciones=observaciones,
-                    usuario=request.user
-                )
-
-                messages.success(request, f'Despacho realizado exitosamente. Remisión/Factura: {consecutivo_soporte}')
-                return redirect('gestion:inventario_global')
-
-        except ValidationError as e:
-            messages.error(request, str(e))
-        except Exception as e:
-            messages.error(request, f'Error al procesar el despacho: {str(e)}')
-            
-    # Preparar datos para el formulario
-    lotes_disponibles = Lotes.objects.filter(activo=True).exclude(pk=lote_id) if lote_id else Lotes.objects.filter(activo=True)
-    clientes = Terceros.objects.filter(activo=True).order_by('nombre')
-
-    context = {
-        'lote_preseleccionado': lote_preseleccionado,
-        'lotes_disponibles': lotes_disponibles,
-        'clientes': clientes,
-    }
-    return render(request, 'gestion/despacho_form.html', context)
-
-@login_required
-def despachos(request):
-    """Vista para mostrar y filtrar los despachos realizados."""
-    # Iniciar con todos los despachos (movimientos tipo Venta)
-    despachos = MovimientosInventario.objects.filter(
-        tipo_movimiento='Venta'
-    ).select_related(
-        'id_lote',
-        'id_lote__id_material',
-        'id_destino_tercero'
-    ).order_by('-fecha')
-
-    # Aplicar filtros
-    fecha_inicio = request.GET.get('fecha_inicio')
-    fecha_fin = request.GET.get('fecha_fin')
-    cliente = request.GET.get('cliente')
-
-    if fecha_inicio:
-        despachos = despachos.filter(fecha__date__gte=fecha_inicio)
-    if fecha_fin:
-        despachos = despachos.filter(fecha__date__lte=fecha_fin)
-    if cliente:
-        despachos = despachos.filter(id_destino_tercero_id=cliente)
-
-    # Obtener lista de clientes para el filtro
-    clientes = Terceros.objects.filter(tipo='Cliente', activo=True).order_by('nombre')
-
-    context = {
-        'despachos': despachos,
-        'clientes': clientes,
-    }
-    return render(request, 'gestion/despachos.html', context)
 
 @login_required
 @require_GET
@@ -1639,3 +1563,80 @@ def test_proceso_directo(request):
             messages.error(request, f'Error en proceso directo: {str(e)}')
         
         return redirect('gestion:test_proceso_directo')
+
+
+# --- Vistas para Despachos ---
+
+@login_required
+def despachos(request):
+    """Lista y crea despachos de materiales."""
+    if request.method == 'POST':
+        try:
+            numero_remision = request.POST.get('numero_remision')
+            fecha_despacho = request.POST.get('fecha_despacho') or None
+            direccion = request.POST.get('direccion_entrega')
+            observaciones = request.POST.get('observaciones', '')
+            tercero_id = request.POST.get('tercero')
+
+            Despacho.objects.create(
+                numero_remision=numero_remision,
+                fecha_despacho=fecha_despacho,
+                direccion_entrega=direccion,
+                observaciones=observaciones,
+                tercero_id=tercero_id,
+                usuario_creacion=request.user,
+            )
+            messages.success(request, 'Despacho creado exitosamente.')
+            return redirect('gestion:despachos')
+        except Exception as e:
+            messages.error(request, f'Error al crear el despacho: {str(e)}')
+
+    despachos_list = Despacho.objects.select_related('tercero').all()
+    context = {
+        'despachos': despachos_list,
+        'terceros': Terceros.objects.all(),
+    }
+    return render(request, 'gestion/despachos.html', context)
+
+
+@login_required
+def detalle_despacho(request, id):
+    """Gestiona los detalles de un despacho."""
+    despacho = get_object_or_404(Despacho, pk=id)
+    if request.method == 'POST':
+        try:
+            lote_id = request.POST.get('producto')
+            bodega_id = request.POST.get('bodega_origen')
+            cantidad = Decimal(request.POST.get('cantidad'))
+
+            DetalleDespacho.objects.create(
+                despacho=despacho,
+                producto_id=lote_id,
+                bodega_origen_id=bodega_id,
+                cantidad=cantidad,
+            )
+            messages.success(request, 'Detalle agregado exitosamente.')
+            return redirect('gestion:detalle_despacho', id=despacho.pk)
+        except Exception as e:
+            messages.error(request, f'Error al agregar el detalle: {str(e)}')
+
+    detalles = despacho.detalles.select_related('producto', 'bodega_origen').all()
+    context = {
+        'despacho': despacho,
+        'detalles': detalles,
+        'lotes': Lotes.objects.filter(activo=True, cantidad_actual__gt=0),
+        'bodegas': Bodegas.objects.all(),
+    }
+    return render(request, 'gestion/despacho_detalle.html', context)
+
+
+@login_required
+@transaction.atomic
+def eliminar_detalle_despacho(request, id):
+    """Elimina un detalle de despacho."""
+    detalle = get_object_or_404(DetalleDespacho, pk=id)
+    despacho_id = detalle.despacho_id
+    if request.method == 'POST':
+        detalle.delete()
+        messages.success(request, 'Detalle eliminado.')
+    return redirect('gestion:detalle_despacho', id=despacho_id)

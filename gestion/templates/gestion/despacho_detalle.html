@@ -1,0 +1,345 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Detalles Despacho{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Despacho {{ despacho.numero_remision }}</h2>
+    <div class="btn-group" role="group">
+      <!-- Botones de acción rápida según el estado -->
+      {% if despacho.estado == 'pendiente' %}
+        {% if detalles %}
+        <form method="post" action="{% url 'gestion:cambiar_estado_despacho' despacho.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="nuevo_estado" value="despachado">
+          <button type="submit" class="btn btn-success" 
+                  onclick="return confirm('¿Confirma marcar este despacho como DESPACHADO? Se establecerá la fecha actual.')">
+            <i class="bi bi-check-circle"></i> Marcar Despachado
+          </button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'gestion:cambiar_estado_despacho' despacho.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="nuevo_estado" value="cancelado">
+          <button type="submit" class="btn btn-danger" 
+                  onclick="return confirm('¿Está seguro de CANCELAR este despacho?')">
+            <i class="bi bi-x-circle"></i> Cancelar
+          </button>
+        </form>
+      {% elif despacho.estado == 'despachado' %}
+        <form method="post" action="{% url 'gestion:cambiar_estado_despacho' despacho.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="nuevo_estado" value="pendiente">
+          <button type="submit" class="btn btn-warning" 
+                  onclick="return confirm('¿Regresar a estado PENDIENTE?')">
+            <i class="bi bi-arrow-counterclockwise"></i> Regresar a Pendiente
+          </button>
+        </form>
+      {% elif despacho.estado == 'cancelado' %}
+        <form method="post" action="{% url 'gestion:cambiar_estado_despacho' despacho.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="nuevo_estado" value="pendiente">
+          <button type="submit" class="btn btn-info" 
+                  onclick="return confirm('¿Reactivar este despacho como PENDIENTE?')">
+            <i class="bi bi-arrow-repeat"></i> Reactivar
+          </button>
+        </form>
+      {% endif %}
+      
+      <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editarDespachoModal">
+        <i class="bi bi-pencil"></i> Editar Información
+      </button>
+      <a href="{% url 'gestion:despachos' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <!-- Información del despacho -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5>Información del Despacho</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Tercero:</strong> {{ despacho.tercero.nombre }}</p>
+          <p><strong>Dirección:</strong> {{ despacho.direccion_entrega }}</p>
+          <p><strong>Estado:</strong> 
+            <span class="badge bg-{% if despacho.estado == 'pendiente' %}warning{% elif despacho.estado == 'despachado' %}success{% elif despacho.estado == 'cancelado' %}danger{% else %}info{% endif %}">
+              {{ despacho.get_estado_display }}
+            </span>
+          </p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Fecha Creación:</strong> {{ despacho.fecha_creacion|date:'d/m/Y H:i' }}</p>
+          {% if despacho.fecha_despacho %}
+          <p><strong>Fecha Despacho:</strong> {{ despacho.fecha_despacho|date:'d/m/Y' }}</p>
+          {% endif %}
+          <p><strong>Usuario:</strong> {{ despacho.usuario_creacion.username }}</p>
+        </div>
+      </div>
+      {% if despacho.observaciones %}
+      <div class="row">
+        <div class="col-12">
+          <p><strong>Observaciones:</strong> {{ despacho.observaciones }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Formulario para agregar detalles -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5>Agregar Producto al Despacho</h5>
+    </div>
+    <div class="card-body">
+      <form method="post" class="row g-3" id="agregarDetalleForm">
+        {% csrf_token %}
+        <div class="col-md-4">
+          <label class="form-label">Lote</label>
+          <select name="producto" class="form-select" required id="lote-select">
+            <option value="">Seleccionar lote...</option>
+            {% for l in lotes %}
+            <option value="{{ l.id_lote }}" 
+                    data-stock="{{ l.cantidad_actual }}" 
+                    data-bodega="{{ l.id_bodega_actual.id_bodega }}"
+                    data-bodega-nombre="{{ l.id_bodega_actual.nombre }}">
+              {{ l.numero_lote }} - {{ l.id_material.nombre }} ({{ l.cantidad_actual }} kg)
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Bodega Origen</label>
+          <select name="bodega_origen" class="form-select" required id="bodega-select">
+            <option value="">Seleccionar bodega...</option>
+            {% for b in bodegas %}
+            <option value="{{ b.id_bodega }}">{{ b.nombre }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">
+            <small id="bodega-info" class="text-muted"></small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Cantidad (kg)</label>
+          <input type="number" step="0.01" name="cantidad" class="form-control" required id="cantidad-input" min="0.01">
+          <div class="form-text">
+            <small id="stock-info" class="text-muted"></small>
+          </div>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-plus"></i> Agregar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista de detalles -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Productos en el Despacho</h5>
+    </div>
+    <div class="card-body">
+      {% if detalles %}
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Lote</th>
+              <th>Material</th>
+              <th>Bodega</th>
+              <th>Cantidad</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in detalles %}
+            <tr>
+              <td>{{ d.producto.numero_lote }}</td>
+              <td>{{ d.producto.id_material.nombre }}</td>
+              <td>{{ d.bodega_origen.nombre }}</td>
+              <td>{{ d.cantidad }} kg</td>
+              <td>
+                <form method="post" action="{% url 'gestion:eliminar_detalle_despacho' d.id %}" 
+                      style="display:inline;" onsubmit="return confirm('¿Está seguro de eliminar este detalle?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash"></i> Eliminar
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-info">
+              <td colspan="3"><strong>Total</strong></td>
+              <td><strong>
+                {% if detalles %}
+                  {% for d in detalles %}
+                    {% if forloop.first %}
+                      {{ d.cantidad }}
+                    {% else %}
+                      + {{ d.cantidad }}
+                    {% endif %}
+                  {% endfor %}
+                  kg ({{ detalles|length }} item{% if detalles|length != 1 %}s{% endif %})
+                {% else %}
+                  0 kg (0 items)
+                {% endif %}
+              </strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No hay productos agregados a este despacho.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar información del despacho -->
+<div class="modal fade" id="editarDespachoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Información del Despacho</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'gestion:editar_despacho' despacho.id %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Número de Remisión</label>
+            <input type="text" name="numero_remision" class="form-control" 
+                   value="{{ despacho.numero_remision }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Fecha de Despacho</label>
+            <input type="date" name="fecha_despacho" class="form-control" 
+                   value="{% if despacho.fecha_despacho %}{{ despacho.fecha_despacho|date:'Y-m-d' }}{% endif %}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tercero</label>
+            <select name="tercero" class="form-select" required>
+              {% for t in terceros %}
+              <option value="{{ t.id_tercero }}" {% if t.id_tercero == despacho.tercero.id_tercero %}selected{% endif %}>
+                {{ t.nombre }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dirección de Entrega</label>
+            <input type="text" name="direccion_entrega" class="form-control" 
+                   value="{{ despacho.direccion_entrega }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Estado</label>
+            <select name="estado" class="form-select">
+              {% for value, label in despacho.ESTADO_CHOICES %}
+              <option value="{{ value }}" {% if value == despacho.estado %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="3">{{ despacho.observaciones }}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loteSelect = document.getElementById('lote-select');
+    const bodegaSelect = document.getElementById('bodega-select');
+    const cantidadInput = document.getElementById('cantidad-input');
+    const stockInfo = document.getElementById('stock-info');
+    const bodegaInfo = document.getElementById('bodega-info');
+
+    // Actualizar información cuando se selecciona un lote
+    loteSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const stock = selectedOption.dataset.stock;
+            const bodegaId = selectedOption.dataset.bodega;
+            const bodegaNombre = selectedOption.dataset.bodegaNombre;
+            
+            stockInfo.textContent = `Stock disponible: ${stock} kg`;
+            bodegaInfo.textContent = `Lote ubicado en: ${bodegaNombre}`;
+            cantidadInput.max = stock;
+            
+            // Preseleccionar la bodega del lote
+            bodegaSelect.value = bodegaId;
+        } else {
+            stockInfo.textContent = '';
+            bodegaInfo.textContent = '';
+            cantidadInput.max = '';
+            bodegaSelect.value = '';
+        }
+    });
+
+    // Validar cantidad al escribir
+    cantidadInput.addEventListener('input', function() {
+        const cantidad = parseFloat(this.value);
+        const maxStock = parseFloat(this.max);
+        
+        if (cantidad > maxStock) {
+            this.setCustomValidity(`La cantidad no puede exceder el stock disponible (${maxStock} kg)`);
+        } else if (cantidad <= 0) {
+            this.setCustomValidity('La cantidad debe ser mayor a cero');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    // Validar formulario antes de enviar
+    document.getElementById('agregarDetalleForm').addEventListener('submit', function(e) {
+        const lote = loteSelect.value;
+        const bodega = bodegaSelect.value;
+        const cantidad = parseFloat(cantidadInput.value);
+        
+        if (!lote || !bodega || !cantidad || cantidad <= 0) {
+            e.preventDefault();
+            alert('Por favor complete todos los campos correctamente');
+            return;
+        }
+        
+        const selectedLote = loteSelect.options[loteSelect.selectedIndex];
+        const maxStock = parseFloat(selectedLote.dataset.stock);
+        const bodegaLote = selectedLote.dataset.bodega;
+        
+        if (cantidad > maxStock) {
+            e.preventDefault();
+            alert(`La cantidad (${cantidad} kg) excede el stock disponible (${maxStock} kg)`);
+            return;
+        }
+        
+        if (bodega !== bodegaLote) {
+            e.preventDefault();
+            alert('El lote seleccionado no está en la bodega indicada');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

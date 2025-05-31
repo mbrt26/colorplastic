@@ -4,12 +4,31 @@
 
 {% block content %}
 <div class="container">
-    <h1 class="mb-4">Gestión de Terceros</h1>
-    
-    <!-- Botón para abrir modal de nuevo tercero -->
-    <button type="button" class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#nuevoTerceroModal">
-        <i class="bi bi-plus-circle"></i> Nuevo Tercero
-    </button>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Gestión de Terceros</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoTerceroModal">
+                <i class="bi bi-plus-circle"></i> Nuevo Tercero
+            </button>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'gestion:generar_plantilla_terceros' %}">
+                            <i class="bi bi-download me-2"></i>Descargar Plantilla
+                        </a>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importarExcelModal">
+                            <i class="bi bi-upload me-2"></i>Importar desde Excel
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
     
     <!-- Tabla de Terceros -->
     <div class="table-responsive">
@@ -56,6 +75,58 @@
         </table>
     </div>
 
+    <!-- Modal Importar Excel -->
+    <div class="modal fade" id="importarExcelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Importar Terceros desde Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'gestion:importar_terceros_excel' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle me-2"></i>Instrucciones:
+                            </h6>
+                            <ul class="mb-0">
+                                <li>Descargue primero la plantilla Excel usando el botón correspondiente</li>
+                                <li>Complete los datos siguiendo las instrucciones de la plantilla</li>
+                                <li>Campos obligatorios: Nombre y Tipo</li>
+                                <li>Tipos válidos: Proveedor, Cliente, Empleado, Otro</li>
+                                <li>Los nombres de terceros deben ser únicos</li>
+                                <li>Los terceros duplicados serán omitidos</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="archivo_excel" class="form-label">Archivo Excel</label>
+                            <input type="file" class="form-control" id="archivo_excel" name="archivo_excel" 
+                                   accept=".xlsx,.xls" required>
+                            <div class="form-text">Formatos permitidos: .xlsx, .xls</div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <small>
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Esta acción creará nuevos terceros. Los terceros existentes no serán modificados.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-upload me-2"></i>Importar Terceros
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Nuevo Tercero -->
     <div class="modal fade" id="nuevoTerceroModal" tabindex="-1">
         <div class="modal-dialog">
@@ -77,12 +148,13 @@
                                 <option value="">Seleccione un tipo</option>
                                 <option value="Cliente">Cliente</option>
                                 <option value="Proveedor">Proveedor</option>
-                                <option value="Transportista">Transportista</option>
+                                <option value="Empleado">Empleado</option>
+                                <option value="Otro">Otro</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="identificacion" class="form-label">Identificación</label>
-                            <input type="text" class="form-control" id="identificacion" name="identificacion" required>
+                            <input type="text" class="form-control" id="identificacion" name="identificacion">
                         </div>
                         <div class="mb-3">
                             <label for="telefono" class="form-label">Teléfono</label>
@@ -128,13 +200,14 @@
                             <select class="form-select" id="tipo{{ tercero.pk }}" name="tipo" required>
                                 <option value="Cliente" {% if tercero.tipo == 'Cliente' %}selected{% endif %}>Cliente</option>
                                 <option value="Proveedor" {% if tercero.tipo == 'Proveedor' %}selected{% endif %}>Proveedor</option>
-                                <option value="Transportista" {% if tercero.tipo == 'Transportista' %}selected{% endif %}>Transportista</option>
+                                <option value="Empleado" {% if tercero.tipo == 'Empleado' %}selected{% endif %}>Empleado</option>
+                                <option value="Otro" {% if tercero.tipo == 'Otro' %}selected{% endif %}>Otro</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="identificacion{{ tercero.pk }}" class="form-label">Identificación</label>
                             <input type="text" class="form-control" id="identificacion{{ tercero.pk }}" 
-                                   name="identificacion" value="{{ tercero.identificacion }}" required>
+                                   name="identificacion" value="{{ tercero.identificacion }}">
                         </div>
                         <div class="mb-3">
                             <label for="telefono{{ tercero.pk }}" class="form-label">Teléfono</label>
@@ -184,4 +257,34 @@
     </div>
     {% endfor %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación adicional para el archivo Excel
+    const archivoInput = document.getElementById('archivo_excel');
+    if (archivoInput) {
+        archivoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const validExtensions = ['.xlsx', '.xls'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (!validExtensions.includes(fileExtension)) {
+                    alert('Por favor seleccione un archivo Excel válido (.xlsx o .xls)');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Verificar tamaño del archivo (máximo 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+                if (file.size > maxSize) {
+                    alert('El archivo es demasiado grande. Máximo permitido: 5MB');
+                    e.target.value = '';
+                    return;
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

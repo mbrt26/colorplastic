@@ -1,0 +1,338 @@
+/* ColorPlastic - Tema personalizado */
+:root {
+    --cp-primary: #2E8B57;        /* Verde esmeralda - Reciclaje */
+    --cp-secondary: #4682B4;      /* Azul acero - Procesos */
+    --cp-success: #32CD32;        /* Verde lima - Éxito */
+    --cp-warning: #FF8C00;        /* Naranja - Alertas */
+    --cp-danger: #DC143C;         /* Rojo carmesí - Peligro */
+    --cp-info: #00CED1;          /* Turquesa - Información */
+    --cp-light: #F8F9FA;         /* Gris claro */
+    --cp-dark: #2F4F4F;          /* Gris pizarra oscuro */
+    
+    /* Gradientes */
+    --cp-gradient-primary: linear-gradient(135deg, #2E8B57, #3CB371);
+    --cp-gradient-secondary: linear-gradient(135deg, #4682B4, #5F9EA0);
+    --cp-gradient-production: linear-gradient(135deg, #FF8C00, #FFA500);
+}
+
+/* Navbar personalizada */
+.navbar-colorplastic {
+    background: var(--cp-gradient-primary) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-colorplastic .navbar-brand {
+    color: white !important;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-colorplastic .navbar-brand:hover {
+    color: rgba(255,255,255,0.9) !important;
+}
+
+/* Estilos específicos para nav-links */
+.navbar-colorplastic .navbar-nav .nav-link {
+    color: white !important;
+    border-radius: 6px;
+    margin: 0 4px;
+    padding: 8px 12px !important;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.navbar-colorplastic .navbar-nav .nav-link:hover {
+    background-color: rgba(255,255,255,0.15) !important;
+    color: white !important;
+    transform: translateY(-1px);
+}
+
+.navbar-colorplastic .navbar-nav .nav-link.active {
+    background-color: rgba(255,255,255,0.25) !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Dropdown menus */
+.navbar-colorplastic .dropdown-menu {
+    background-color: white;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-top: 8px;
+}
+
+.navbar-colorplastic .dropdown-item {
+    color: var(--cp-dark) !important;
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin: 2px 8px;
+    transition: all 0.2s ease;
+}
+
+.navbar-colorplastic .dropdown-item:hover {
+    background-color: var(--cp-primary) !important;
+    color: white !important;
+}
+
+.navbar-colorplastic .dropdown-item i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Toggler para móvil */
+.navbar-colorplastic .navbar-toggler {
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 6px 10px;
+}
+
+.navbar-colorplastic .navbar-toggler:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.25);
+}
+
+.navbar-colorplastic .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Cards con estilo industrial */
+.card-industrial {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-industrial:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Headers con gradientes */
+.card-header-production {
+    background: var(--cp-gradient-production);
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+.card-header-inventory {
+    background: var(--cp-gradient-secondary);
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+.card-header-process {
+    background: var(--cp-gradient-primary);
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+/* Botones estilizados */
+.btn-cp-primary {
+    background: var(--cp-gradient-primary);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+}
+
+.btn-cp-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(46, 139, 87, 0.3);
+    color: white;
+}
+
+/* Iconos mejorados */
+.process-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--cp-primary);
+}
+
+/* Estadísticas del dashboard */
+.stat-card {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border-left: 4px solid var(--cp-primary);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--cp-primary);
+}
+
+.stat-label {
+    color: var(--cp-dark);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+/* Tablas mejoradas */
+.table-colorplastic {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-colorplastic thead {
+    background: var(--cp-gradient-secondary);
+    color: white;
+}
+
+.table-colorplastic tbody tr:hover {
+    background-color: rgba(46, 139, 87, 0.05);
+}
+
+/* Estados de proceso */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-active { background: #d4edda; color: #155724; }
+.status-paused { background: #fff3cd; color: #856404; }
+.status-stopped { background: #f8d7da; color: #721c24; }
+.status-completed { background: #d1ecf1; color: #0c5460; }
+
+/* Sidebar mejorado */
+.nav-link {
+    border-radius: 8px;
+    margin: 2px 0;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.nav-link.active {
+    background-color: rgba(255,255,255,0.2);
+    color: white;
+    font-weight: 500;
+}
+
+/* Formularios estilizados */
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: var(--cp-primary);
+    box-shadow: 0 0 0 0.2rem rgba(46, 139, 87, 0.25);
+}
+
+/* Alertas personalizadas */
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Autocompletado de operarios */
+.operario-autocomplete {
+    position: relative;
+}
+
+.operario-autocomplete .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-top: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.operario-autocomplete .dropdown-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: none;
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--cp-dark);
+    text-decoration: none;
+}
+
+.operario-autocomplete .dropdown-item:hover {
+    background-color: var(--cp-primary);
+    color: white;
+}
+
+.operario-autocomplete .dropdown-item:focus {
+    background-color: var(--cp-primary);
+    color: white;
+    outline: none;
+}
+
+.operario-autocomplete .dropdown-item strong {
+    display: block;
+    font-weight: 600;
+}
+
+.operario-autocomplete .dropdown-item small {
+    opacity: 0.8;
+    font-size: 0.85rem;
+}
+
+.operario-autocomplete .dropdown-item-text {
+    padding: 12px 16px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Responsive mejorado */
+@media (max-width: 768px) {
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .card-industrial {
+        margin-bottom: 15px;
+    }
+    
+    /* Navbar móvil */
+    .navbar-colorplastic .navbar-collapse {
+        background-color: rgba(46, 139, 87, 0.95);
+        border-radius: 8px;
+        margin-top: 10px;
+        padding: 15px;
+    }
+    
+    .navbar-colorplastic .navbar-nav .nav-link {
+        margin: 4px 0;
+        padding: 12px 16px !important;
+    }
+}

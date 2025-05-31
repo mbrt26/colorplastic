@@ -29,7 +29,33 @@ class DespachoForm(forms.ModelForm):
         model = Despacho
         fields = ['numero_remision', 'tercero', 'direccion_entrega', 'estado', 'observaciones']
         widgets = {
-            'observaciones': forms.Textarea(attrs={'rows': 3}),
+            'numero_remision': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: REM-2025-001'
+            }),
+            'tercero': forms.Select(attrs={
+                'class': 'form-select',
+                'data-placeholder': 'Seleccionar cliente...'
+            }),
+            'direccion_entrega': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Dirección completa de entrega'
+            }),
+            'estado': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Observaciones adicionales sobre el despacho...'
+            }),
+        }
+        labels = {
+            'numero_remision': 'Número de Remisión',
+            'tercero': 'Cliente',
+            'direccion_entrega': 'Dirección de Entrega',
+            'estado': 'Estado',
+            'observaciones': 'Observaciones',
         }
 
 class DetalleDespachoFormSet(forms.BaseInlineFormSet):
@@ -37,17 +63,24 @@ class DetalleDespachoFormSet(forms.BaseInlineFormSet):
         super().clean()
         total = 0
         for form in self.forms:
-            if not form.is_valid():
+            if not hasattr(form, "cleaned_data") or not form.is_valid():
                 continue
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                cantidad = form.cleaned_data.get('cantidad', 0)
+            if form.cleaned_data and not form.cleaned_data.get("DELETE", False):
+                cantidad = form.cleaned_data.get("cantidad", 0)
                 if cantidad <= 0:
-                    raise forms.ValidationError('La cantidad debe ser mayor que cero.')
+                    raise forms.ValidationError("La cantidad debe ser mayor que cero.")
                 total += cantidad
+<<<<<<< HEAD
         if total <= 0:
             if self.instance.pk and self.instance.detalles.exists():
                 return
             raise forms.ValidationError('Debe incluir al menos un producto en el despacho.')
+=======
+
+        # Permitir la actualización cuando ya existen detalles almacenados
+        if total <= 0 and not self.instance.detalles.exists():
+            raise forms.ValidationError("Debe incluir al menos un producto en el despacho.")
+>>>>>>> origin/sync-cloud
 
 DetalleDespachoFormSet = forms.inlineformset_factory(
     Despacho, DetalleDespacho,
@@ -55,6 +88,22 @@ DetalleDespachoFormSet = forms.inlineformset_factory(
     extra=1,
     can_delete=True,
     formset=DetalleDespachoFormSet,
+    widgets={
+        'producto': forms.Select(attrs={
+            'class': 'form-select',
+            'data-placeholder': 'Seleccionar producto...'
+        }),
+        'cantidad': forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01',
+            'min': '0.01',
+            'placeholder': '0.00'
+        }),
+        'bodega_origen': forms.Select(attrs={
+            'class': 'form-select',
+            'data-placeholder': 'Seleccionar bodega...'
+        }),
+    }
 )
 
 class DespachoListView(LoginRequiredMixin, ListView):

@@ -506,38 +506,5 @@ class ResiduosProduccion(models.Model):
         verbose_name_plural = 'Residuos de Producción'
         ordering = ['-fecha']
 
+
 # --- Fin Modelos de Producción ---
-
-class Despacho(models.Model):
-    ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('en_proceso', 'En Proceso'),
-        ('despachado', 'Despachado'),
-        ('cancelado', 'Cancelado'),
-    ]
-
-    numero_remision = models.CharField(max_length=50, unique=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_despacho = models.DateTimeField(null=True, blank=True)
-    tercero = models.ForeignKey('Terceros', on_delete=models.PROTECT, related_name='despachos')
-    direccion_entrega = models.CharField(max_length=255)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    observaciones = models.TextField(blank=True)
-    usuario_creacion = models.ForeignKey(User, on_delete=models.PROTECT, related_name='despachos_creados')
-    
-    class Meta:
-        ordering = ['-fecha_creacion']
-        verbose_name = 'Despacho'
-        verbose_name_plural = 'Despachos'
-
-    def __str__(self):
-        return f"Despacho #{self.numero_remision} - {self.tercero}"
-
-class DetalleDespacho(models.Model):
-    despacho = models.ForeignKey(Despacho, on_delete=models.CASCADE, related_name='detalles')
-    producto = models.ForeignKey('Lotes', on_delete=models.PROTECT)
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    bodega_origen = models.ForeignKey('Bodegas', on_delete=models.PROTECT)
-    
-    def __str__(self):
-        return f"{self.despacho.numero_remision} - {self.producto} ({self.cantidad})"

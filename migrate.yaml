@@ -1,5 +1,5 @@
 runtime: python39
-entrypoint: gunicorn -b :$PORT colorplastic_project.wsgi:application
+entrypoint: python migrate_db.py
 
 env_variables:
   GAE_APPLICATION: "colorplasticv2"
@@ -7,9 +7,8 @@ env_variables:
   GOOGLE_CLOUD_PROJECT: "colorplasticv2"
   GS_BUCKET_NAME: "colorplastic-static-unique"
 
-automatic_scaling:
-  min_instances: 0
-  max_instances: 5
+manual_scaling:
+  instances: 1
 
 beta_settings:
   cloud_sql_instances: colorplasticv2:us-central1:colorplastic-db

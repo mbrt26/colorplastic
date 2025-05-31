@@ -19,8 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 if os.getenv('GAE_APPLICATION', None):
     try:
-        from google.cloud import secret_manager_v1
-        client = secret_manager_v1.SecretManagerServiceClient()
+        from google.cloud import secretmanager
+        client = secretmanager.SecretManagerServiceClient()
         project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
         name = f"projects/{project_id}/secrets/django_secret_key/versions/latest"
         response = client.access_secret_version(request={"name": name})
@@ -35,13 +35,16 @@ else:
 DEBUG = os.getenv('GAE_APPLICATION', None) is None and os.getenv('COMPUTE_ENGINE', None) is None
 
 # Configuración de hosts permitidos específica por entorno
-if os.getenv('COMPUTE_ENGINE', None):
+if os.getenv('GAE_APPLICATION', None):
+    # App Engine - incluir el dominio correcto
+    ALLOWED_HOSTS = ['colorplasticv2.uc.r.appspot.com', 'localhost', '127.0.0.1']
+elif os.getenv('COMPUTE_ENGINE', None):
     ALLOWED_HOSTS = ['34.59.178.70', 'localhost', '127.0.0.1']
     # Configuración para manejo correcto de headers de proxy
     USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 else:
-    ALLOWED_HOSTS = ['colorplastic.uc.r.appspot.com', 'localhost', '127.0.0.1']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
@@ -98,7 +101,7 @@ if os.getenv('GAE_APPLICATION', None):
             'NAME': 'colorplastic',
             'USER': 'colorplastic',
             'PASSWORD': 'ColorPlastic2024!',
-            'HOST': '/cloudsql/colorplastic:us-central1:colorplastic-db',
+            'HOST': '/cloudsql/colorplasticv2:us-central1:colorplastic-db',
             'PORT': '5432',
         }
     }
@@ -158,24 +161,28 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 if os.getenv('GAE_APPLICATION', None):
     # Production - use Google Cloud Storage
-    GS_BUCKET_NAME = 'colorplastic-static'
+    GS_BUCKET_NAME = os.getenv('GS_BUCKET_NAME', 'colorplastic-static-unique')
     STATIC_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
     STATICFILES_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
     GS_DEFAULT_ACL = 'publicRead'
+    
+    # Media files también en Cloud Storage - No crear directorios en App Engine
+    MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/media/'
+    DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 else:
     # Development - use local static files
     STATIC_URL = '/static/'
     STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+    
+    # Media files locales
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    
+    # Ensure media directory exists ONLY in local development
+    if not os.path.exists(MEDIA_ROOT):
+        os.makedirs(MEDIA_ROOT)
 
 STATICFILES_DIRS = []
-
-# Media files (Uploaded files)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Ensure media directory exists
-if not os.path.exists(MEDIA_ROOT):
-    os.makedirs(MEDIA_ROOT)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -206,15 +213,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'debug.log',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'gestion.views': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'ERROR',
             'propagate': True,
         },
@@ -224,3 +226,12 @@ LOGGING = {
         },
     },
 }
+
+# Only add file logging in local development (not in App Engine)
+if not os.getenv('GAE_APPLICATION', None):
+    LOGGING['handlers']['file'] = {
+        'class': 'logging.FileHandler',
+        'filename': BASE_DIR / 'debug.log',
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['gestion.views']['handlers'].append('file')

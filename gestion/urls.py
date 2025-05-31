@@ -79,8 +79,8 @@ urlpatterns = [
 
     # Despachos de materiales
     path('despachos/', views.despachos, name='despachos'),
-    path('despacho/<uuid:id>/', views.detalle_despacho, name='detalle_despacho'),
-    path('despacho/detalle/eliminar/<uuid:id>/', views.eliminar_detalle_despacho, name='eliminar_detalle_despacho'),
+    path('despacho/<int:id>/', views.detalle_despacho, name='detalle_despacho'),
+    path('despacho/detalle/eliminar/<int:id>/', views.eliminar_detalle_despacho, name='eliminar_detalle_despacho'),
     
 
     

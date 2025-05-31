@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name YOUR_DOMAIN_OR_IP;  # Cambia esto por tu dominio o IP externa
+    server_name 34.59.178.70;
 
     location = /favicon.ico { access_log off; log_not_found off; }
     
@@ -15,10 +15,17 @@ server {
     location / {
         include proxy_params;
         proxy_pass http://unix:/opt/colorplastic/colorplastic.sock;
-        proxy_set_header Host $host;
+        
+        # Headers corregidos para evitar duplicación
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $server_name;
+        
+        # Configuración adicional para estabilidad
+        proxy_redirect off;
+        proxy_buffering off;
     }
 
     # Configuración de seguridad básica

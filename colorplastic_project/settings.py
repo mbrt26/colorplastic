@@ -34,7 +34,14 @@ else:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('GAE_APPLICATION', None) is None and os.getenv('COMPUTE_ENGINE', None) is None
 
-ALLOWED_HOSTS = ['colorplastic.uc.r.appspot.com', 'localhost', '127.0.0.1', '*']  # Agregamos '*' temporalmente, cambiar por la IP real
+# Configuración de hosts permitidos específica por entorno
+if os.getenv('COMPUTE_ENGINE', None):
+    ALLOWED_HOSTS = ['34.59.178.70', 'localhost', '127.0.0.1']
+    # Configuración para manejo correcto de headers de proxy
+    USE_X_FORWARDED_HOST = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    ALLOWED_HOSTS = ['colorplastic.uc.r.appspot.com', 'localhost', '127.0.0.1']
 
 # Application definition
 

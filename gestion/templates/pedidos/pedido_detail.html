@@ -1,0 +1,450 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Pedido {{ pedido.numero_pedido }} - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .detail-header {
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .detail-row {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    .detail-label {
+        font-weight: 600;
+        color: #6b7280;
+        min-width: 150px;
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+    }
+    .material-card {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+    .material-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .total-card {
+        background: #f3f4f6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+    .total-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+    .total-line.total {
+        border-top: 2px solid #d1d5db;
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    .quick-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .quick-action-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+    }
+    .quick-action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .orden-card {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="{% url 'gestion:pedidos_dashboard' %}">Pedidos</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'gestion:pedidos_list' %}">Lista</a></li>
+                        <li class="breadcrumb-item active">{{ pedido.numero_pedido }}</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0 text-gray-800">{{ pedido.numero_pedido }}</h1>
+                <p class="text-muted mb-0">Creado el {{ pedido.fecha_pedido|date:"d/m/Y H:i" }} por {{ pedido.usuario_creacion.get_full_name|default:pedido.usuario_creacion.username }}</p>
+            </div>
+            <div>
+                {% if pedido.estado in 'borrador,confirmado' %}
+                <a href="{% url 'gestion:pedido_edit' pedido.id_pedido %}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil me-2"></i>Editar
+                </a>
+                {% endif %}
+                <a href="{% url 'gestion:pedidos_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información principal -->
+        <div class="col-lg-8">
+            <!-- Estado y Acciones Rápidas -->
+            <div class="detail-card">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="status-badge 
+                                {% if pedido.estado == 'completado' %}bg-success bg-opacity-10 text-success
+                                {% elif pedido.estado == 'en_produccion' %}bg-primary bg-opacity-10 text-primary
+                                {% elif pedido.estado == 'confirmado' %}bg-info bg-opacity-10 text-info
+                                {% elif pedido.estado == 'borrador' %}bg-secondary bg-opacity-10 text-secondary
+                                {% elif pedido.estado == 'cancelado' %}bg-danger bg-opacity-10 text-danger
+                                {% else %}bg-dark bg-opacity-10 text-dark{% endif %}">
+                                <i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>
+                                {{ pedido.get_estado_display }}
+                            </div>
+                            
+                            <!-- Cambiar estado -->
+                            {% if pedido.estado == 'borrador' %}
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-primary" onclick="cambiarEstado('confirmado')">
+                                    <i class="bi bi-check-circle me-1"></i>Confirmar
+                                </button>
+                            </div>
+                            {% elif pedido.estado == 'confirmado' %}
+                            <div class="mt-3">
+                                <form action="{% url 'gestion:generar_orden_produccion' pedido.id_pedido %}" method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-gear me-1"></i>Generar Orden
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h5 class="mb-3">Acciones Rápidas</h5>
+                        <div class="quick-actions">
+                            <!-- Botón para crear tarea de seguimiento -->
+                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Seguimiento pedido {{ pedido.numero_pedido }}" 
+                               class="btn btn-outline-primary quick-action-btn">
+                                <i class="bi bi-clipboard-check me-1"></i>Crear Tarea Seguimiento
+                            </a>
+                            
+                            <!-- Botón para crear tarea de producción -->
+                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Preparar producción pedido {{ pedido.numero_pedido }}" 
+                               class="btn btn-outline-success quick-action-btn">
+                                <i class="bi bi-gear me-1"></i>Tarea de Producción
+                            </a>
+                            
+                            <!-- Botón para crear tarea de despacho -->
+                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Coordinar despacho pedido {{ pedido.numero_pedido }}" 
+                               class="btn btn-outline-warning quick-action-btn">
+                                <i class="bi bi-truck me-1"></i>Tarea de Despacho
+                            </a>
+                            
+                            <!-- Botón para crear tarea de calidad -->
+                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Control calidad pedido {{ pedido.numero_pedido }}" 
+                               class="btn btn-outline-info quick-action-btn">
+                                <i class="bi bi-shield-check me-1"></i>Control de Calidad
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Cliente -->
+            <div class="detail-card">
+                <h5 class="detail-header">Información del Cliente</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="detail-row d-flex">
+                            <span class="detail-label">Cliente:</span>
+                            <span class="ms-2">
+                                <a href="{% url 'gestion:cliente_detail' pedido.cliente.id_cliente %}">
+                                    {{ pedido.cliente.tercero.nombre }}
+                                </a>
+                            </span>
+                        </div>
+                        <div class="detail-row d-flex">
+                            <span class="detail-label">Contacto:</span>
+                            <span class="ms-2">{{ pedido.contacto.nombre }} {{ pedido.contacto.apellido }}</span>
+                        </div>
+                        <div class="detail-row d-flex">
+                            <span class="detail-label">Email:</span>
+                            <span class="ms-2">
+                                {% if pedido.contacto.email %}
+                                    <a href="mailto:{{ pedido.contacto.email }}">{{ pedido.contacto.email }}</a>
+                                {% else %}
+                                    No especificado
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-row d-flex">
+                            <span class="detail-label">OC Cliente:</span>
+                            <span class="ms-2">{{ pedido.orden_compra_cliente|default:"No especificada" }}</span>
+                        </div>
+                        <div class="detail-row d-flex">
+                            <span class="detail-label">Fecha Requerida:</span>
+                            <span class="ms-2">{{ pedido.fecha_requerida|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-row d-flex">
+                            <span class="detail-label">Prioridad:</span>
+                            <span class="ms-2">
+                                <span class="badge 
+                                    {% if pedido.prioridad == 'urgente' %}bg-danger
+                                    {% elif pedido.prioridad == 'alta' %}bg-warning text-dark
+                                    {% elif pedido.prioridad == 'normal' %}bg-info
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ pedido.get_prioridad_display }}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Productos del Pedido -->
+            <div class="detail-card">
+                <h5 class="detail-header">Productos del Pedido</h5>
+                {% if detalles %}
+                    {% for detalle in detalles %}
+                    <div class="material-card">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <h6 class="mb-1">{{ detalle.material.nombre }}</h6>
+                                <small class="text-muted">{{ detalle.material.tipo }}</small>
+                                {% if detalle.descripcion_adicional %}
+                                    <br><small class="text-muted">{{ detalle.descripcion_adicional }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div class="text-muted small">Cantidad</div>
+                                <strong>{{ detalle.cantidad|floatformat:2 }} {{ detalle.unidad_medida }}</strong>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div class="text-muted small">Precio Unit.</div>
+                                <strong>${{ detalle.precio_unitario|floatformat:0 }}</strong>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div class="text-muted small">Descuento</div>
+                                <strong>{{ detalle.descuento_porcentaje|floatformat:0 }}%</strong>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <div class="text-muted small">Subtotal</div>
+                                <strong>${{ detalle.subtotal|floatformat:0 }}</strong>
+                            </div>
+                        </div>
+                        {% if detalle.especificaciones %}
+                        <div class="mt-2 pt-2 border-top">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                {{ detalle.especificaciones }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        <!-- Progreso de entrega -->
+                        <div class="mt-2 pt-2 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Entregado: {{ detalle.cantidad_entregada|floatformat:2 }} de {{ detalle.cantidad|floatformat:2 }} {{ detalle.unidad_medida }}</small>
+                                <div class="progress" style="width: 100px; height: 10px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {% widthratio detalle.cantidad_entregada detalle.cantidad 100 %}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay productos en este pedido</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Información de Entrega -->
+            <div class="detail-card">
+                <h5 class="detail-header">Información de Entrega</h5>
+                <div class="detail-row">
+                    <strong>Dirección de Entrega:</strong>
+                    <p class="mb-0 mt-1">{{ pedido.direccion_entrega }}</p>
+                </div>
+                <div class="detail-row">
+                    <strong>Condiciones de Pago:</strong>
+                    <p class="mb-0 mt-1">{{ pedido.condiciones_pago }}</p>
+                </div>
+                {% if pedido.observaciones %}
+                <div class="detail-row">
+                    <strong>Observaciones:</strong>
+                    <p class="mb-0 mt-1">{{ pedido.observaciones }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Órdenes de Producción Relacionadas -->
+            {% if ordenes_produccion %}
+            <div class="detail-card">
+                <h5 class="detail-header">Órdenes de Producción</h5>
+                {% for orden in ordenes_produccion %}
+                <div class="orden-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <a href="{% url 'gestion:orden_detail' orden.id_orden %}">
+                                    {{ orden.numero_orden }}
+                                </a>
+                            </h6>
+                            <small class="text-muted">
+                                Creada el {{ orden.fecha_creacion|date:"d/m/Y" }}
+                            </small>
+                        </div>
+                        <div>
+                            <span class="badge 
+                                {% if orden.estado == 'completado' %}bg-success
+                                {% elif orden.estado == 'en_proceso' %}bg-primary
+                                {% elif orden.estado == 'programado' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ orden.get_estado_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Resumen y Totales -->
+        <div class="col-lg-4">
+            <div class="detail-card position-sticky" style="top: 20px;">
+                <h5 class="detail-header">Resumen del Pedido</h5>
+                
+                <!-- Progreso General -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Progreso de Entrega</span>
+                        <span>{{ progreso|floatformat:0 }}%</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ progreso }}%">{{ progreso|floatformat:0 }}%</div>
+                    </div>
+                </div>
+                
+                <!-- Totales -->
+                <div class="total-card">
+                    <div class="total-line">
+                        <span>Subtotal:</span>
+                        <span>${{ pedido.subtotal|floatformat:0 }}</span>
+                    </div>
+                    {% if pedido.descuento_porcentaje > 0 %}
+                    <div class="total-line">
+                        <span>Descuento ({{ pedido.descuento_porcentaje|floatformat:0 }}%):</span>
+                        <span>-${{ pedido.descuento|floatformat:0 }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="total-line">
+                        <span>Base Gravable:</span>
+                        <span>${{ pedido.base_gravable|floatformat:0 }}</span>
+                    </div>
+                    <div class="total-line">
+                        <span>IVA (19%):</span>
+                        <span>${{ pedido.iva|floatformat:0 }}</span>
+                    </div>
+                    <div class="total-line total">
+                        <span>Total:</span>
+                        <span>${{ pedido.total|floatformat:0 }}</span>
+                    </div>
+                </div>
+                
+                <!-- Acciones adicionales -->
+                <div class="mt-4 d-grid gap-2">
+                    {% if pedido.estado == 'confirmado' and not ordenes_produccion %}
+                    <form action="{% url 'gestion:generar_orden_produccion' pedido.id_pedido %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-gear-fill me-2"></i>Generar Orden de Producción
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <!-- Botón para crear tarea general -->
+                    <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}" 
+                       class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Nueva Tarea
+                    </a>
+                    
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer me-2"></i>Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cambiarEstado(nuevoEstado) {
+    if (confirm('¿Está seguro de cambiar el estado del pedido?')) {
+        fetch("{% url 'gestion:pedido_cambiar_estado' pedido.id_pedido %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ estado: nuevoEstado })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al cambiar el estado: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cambiar el estado');
+        });
+    }
+}
+</script>
+{% endblock %}

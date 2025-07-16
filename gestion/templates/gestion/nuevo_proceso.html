@@ -42,9 +42,13 @@
                         <label for="turno" class="form-label">Turno</label>
                         <select class="form-select" id="turno" name="turno" required>
                             <option value="">Seleccione un turno...</option>
-                            <option value="Mañana">Mañana</option>
-                            <option value="Tarde">Tarde</option>
-                            <option value="Noche">Noche</option>
+                            <option value="6am-2pm">6am-2pm</option>
+                            <option value="6am-12pm">6am-12pm</option>
+                            <option value="12pm-6pm">12pm-6pm</option>
+                            <option value="2pm-10pm">2pm-10pm</option>
+                            <option value="10pm-6am">10pm-6am</option>
+                            <option value="6am-6pm">6am-6pm</option>
+                            <option value="6pm-6am">6pm-6am</option>
                         </select>
                         <div class="invalid-feedback">
                             Por favor seleccione un turno
@@ -459,12 +463,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Autoseleccionar el turno basado en la hora actual
     const turnoSelect = document.getElementById('turno');
     const hora = new Date().getHours();
-    if (hora >= 6 && hora < 14) {
-        turnoSelect.value = 'Mañana';
-    } else if (hora >= 14 && hora < 22) {
-        turnoSelect.value = 'Tarde';
+    if (hora >= 6 && hora < 12) {
+        turnoSelect.value = '6am-12pm';
+    } else if (hora >= 12 && hora < 14) {
+        turnoSelect.value = '12pm-6pm';
+    } else if (hora >= 14 && hora < 18) {
+        turnoSelect.value = '2pm-10pm';
+    } else if (hora >= 18 && hora < 22) {
+        turnoSelect.value = '6pm-6am';
+    } else if (hora >= 22 || hora < 6) {
+        turnoSelect.value = '10pm-6am';
     } else {
-        turnoSelect.value = 'Noche';
+        turnoSelect.value = '6am-2pm';
     }
     
     // Función para verificar stock en tiempo real

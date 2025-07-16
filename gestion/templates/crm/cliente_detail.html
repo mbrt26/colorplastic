@@ -1,0 +1,590 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}{{ cliente.tercero.nombre }} - CRM ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-person me-2"></i>
+            {{ cliente.tercero.nombre }}
+        </h2>
+        <div class="btn-group">
+            <a href="{% url 'gestion:clientes_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Volver a Clientes
+            </a>
+            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&cliente_id={{ cliente.id_cliente }}" 
+               class="btn btn-outline-info">
+                <i class="bi bi-check2-square me-2"></i>Nueva Tarea
+            </a>
+            <a href="{% url 'gestion:cliente_edit' cliente.id_cliente %}" class="btn btn-primary">
+                <i class="bi bi-pencil me-2"></i>Editar Cliente
+            </a>
+        </div>
+    </div>
+
+    <!-- Información General y Estado -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Información General
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">NIT/ID:</dt>
+                                <dd class="col-sm-8">{{ cliente.tercero.identificacion|default:"N/A" }}</dd>
+                                
+                                <dt class="col-sm-4">Tipo:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge 
+                                        {% if cliente.tipo_cliente == 'corporativo' %}bg-primary
+                                        {% elif cliente.tipo_cliente == 'pyme' %}bg-success
+                                        {% elif cliente.tipo_cliente == 'distribuidor' %}bg-warning
+                                        {% elif cliente.tipo_cliente == 'gobierno' %}bg-info
+                                        {% else %}bg-secondary
+                                        {% endif %}">
+                                        {{ cliente.get_tipo_cliente_display }}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-4">Estado:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge 
+                                        {% if cliente.estado == 'activo' %}bg-success
+                                        {% elif cliente.estado == 'prospecto' %}bg-warning
+                                        {% elif cliente.estado == 'inactivo' %}bg-secondary
+                                        {% else %}bg-danger
+                                        {% endif %}">
+                                        {{ cliente.get_estado_display }}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-4">Industria:</dt>
+                                <dd class="col-sm-8">{{ cliente.industria|default:"N/A" }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Teléfono:</dt>
+                                <dd class="col-sm-8">{{ cliente.tercero.telefono|default:"N/A" }}</dd>
+                                
+                                <dt class="col-sm-4">Email:</dt>
+                                <dd class="col-sm-8">
+                                    {% if cliente.tercero.email %}
+                                        <a href="mailto:{{ cliente.tercero.email }}">{{ cliente.tercero.email }}</a>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Sitio Web:</dt>
+                                <dd class="col-sm-8">
+                                    {% if cliente.sitio_web %}
+                                        <a href="{{ cliente.sitio_web }}" target="_blank">{{ cliente.sitio_web }}</a>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Asignado a:</dt>
+                                <dd class="col-sm-8">{{ cliente.usuario_asignado.first_name }} {{ cliente.usuario_asignado.last_name }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    {% if cliente.tercero.direccion %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <dt>Dirección:</dt>
+                            <dd>{{ cliente.tercero.direccion }}</dd>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if cliente.observaciones %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <dt>Observaciones:</dt>
+                            <dd>{{ cliente.observaciones|linebreaks }}</dd>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Información Comercial -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-cash-stack me-2"></i>Información Comercial
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl>
+                        <dt>Límite de Crédito:</dt>
+                        <dd class="h5">${{ cliente.limite_credito|floatformat:0 }}</dd>
+                        
+                        <dt>Días de Crédito:</dt>
+                        <dd>{{ cliente.dias_credito }} días</dd>
+                        
+                        <dt>Descuento Máximo:</dt>
+                        <dd>{{ cliente.descuento_maximo }}%</dd>
+                        
+                        {% if cliente.numero_empleados %}
+                        <dt>Número de Empleados:</dt>
+                        <dd>{{ cliente.numero_empleados }}</dd>
+                        {% endif %}
+                        
+                        {% if cliente.facturacion_anual %}
+                        <dt>Facturación Anual:</dt>
+                        <dd>${{ cliente.facturacion_anual|floatformat:0 }}</dd>
+                        {% endif %}
+                    </dl>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">Cliente desde</small>
+                        <div class="h6">{{ cliente.fecha_creacion|date:"d/m/Y" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs para Contactos, Oportunidades e Interacciones -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="contactos-tab" data-bs-toggle="tab" 
+                            data-bs-target="#contactos" type="button" role="tab">
+                        <i class="bi bi-person-lines-fill me-2"></i>
+                        Contactos ({{ contactos.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="oportunidades-tab" data-bs-toggle="tab" 
+                            data-bs-target="#oportunidades" type="button" role="tab">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Oportunidades ({{ oportunidades.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="interacciones-tab" data-bs-toggle="tab" 
+                            data-bs-target="#interacciones" type="button" role="tab">
+                        <i class="bi bi-chat-dots me-2"></i>
+                        Interacciones ({{ interacciones.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tareas-tab" data-bs-toggle="tab" 
+                            data-bs-target="#tareas" type="button" role="tab">
+                        <i class="bi bi-check2-square me-2"></i>
+                        Tareas ({{ tareas.count }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Tab de Contactos -->
+                <div class="tab-pane fade show active" id="contactos" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Contactos del Cliente</h6>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" 
+                                data-bs-target="#nuevoContactoModal">
+                            <i class="bi bi-person-plus me-1"></i>Nuevo Contacto
+                        </button>
+                    </div>
+                    
+                    {% if contactos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Cargo</th>
+                                    <th>Teléfono</th>
+                                    <th>Email</th>
+                                    <th>Principal</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contacto in contactos %}
+                                <tr>
+                                    <td>{{ contacto.nombre }}</td>
+                                    <td>{{ contacto.cargo|default:"N/A" }}</td>
+                                    <td>{{ contacto.telefono|default:"N/A" }}</td>
+                                    <td>
+                                        {% if contacto.email %}
+                                            <a href="mailto:{{ contacto.email }}">{{ contacto.email }}</a>
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if contacto.es_principal %}
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-person-x text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay contactos registrados</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab de Oportunidades -->
+                <div class="tab-pane fade" id="oportunidades" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Oportunidades de Negocio</h6>
+                        <a href="{% url 'gestion:oportunidad_create' %}?cliente={{ cliente.id_cliente }}" 
+                           class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-circle me-1"></i>Nueva Oportunidad
+                        </a>
+                    </div>
+                    
+                    {% if oportunidades %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Etapa</th>
+                                    <th>Valor</th>
+                                    <th>Probabilidad</th>
+                                    <th>Cierre Estimado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for oportunidad in oportunidades %}
+                                <tr>
+                                    <td>{{ oportunidad.nombre }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ oportunidad.get_etapa_display }}</span>
+                                    </td>
+                                    <td>${{ oportunidad.valor_estimado|floatformat:0 }}</td>
+                                    <td>{{ oportunidad.probabilidad }}%</td>
+                                    <td>{{ oportunidad.fecha_cierre_estimada|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary" title="Ver">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-graph-down text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay oportunidades registradas</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab de Interacciones -->
+                <div class="tab-pane fade" id="interacciones" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Historial de Interacciones</h6>
+                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" 
+                                data-bs-target="#nuevaInteraccionModal">
+                            <i class="bi bi-plus-circle me-1"></i>Nueva Interacción
+                        </button>
+                    </div>
+                    
+                    {% if interacciones %}
+                    <div class="timeline">
+                        {% for interaccion in interacciones|slice:":10" %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker 
+                                {% if interaccion.tipo == 'llamada' %}bg-primary
+                                {% elif interaccion.tipo == 'email' %}bg-info
+                                {% elif interaccion.tipo == 'reunion' %}bg-success
+                                {% elif interaccion.tipo == 'visita' %}bg-warning
+                                {% else %}bg-secondary
+                                {% endif %}">
+                                {% if interaccion.tipo == 'llamada' %}
+                                    <i class="bi bi-telephone"></i>
+                                {% elif interaccion.tipo == 'email' %}
+                                    <i class="bi bi-envelope"></i>
+                                {% elif interaccion.tipo == 'reunion' %}
+                                    <i class="bi bi-calendar-event"></i>
+                                {% elif interaccion.tipo == 'visita' %}
+                                    <i class="bi bi-geo-alt"></i>
+                                {% else %}
+                                    <i class="bi bi-chat-dots"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1">{{ interaccion.asunto }}</h6>
+                                    <small class="text-muted">{{ interaccion.fecha_interaccion|date:"d/m/Y H:i" }}</small>
+                                </div>
+                                <p class="mb-1">{{ interaccion.descripcion|truncatewords:20 }}</p>
+                                <small class="text-muted">
+                                    Por: {{ interaccion.usuario.first_name }} {{ interaccion.usuario.last_name }}
+                                    {% if interaccion.contacto %}
+                                        | Con: {{ interaccion.contacto.nombre }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-chat-x text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay interacciones registradas</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab de Tareas -->
+                <div class="tab-pane fade" id="tareas" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Tareas Relacionadas</h6>
+                        <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&cliente_id={{ cliente.id_cliente }}" 
+                           class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i>Nueva Tarea
+                        </a>
+                    </div>
+                    
+                    {% if tareas %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Título</th>
+                                    <th>Estado</th>
+                                    <th>Prioridad</th>
+                                    <th>Vencimiento</th>
+                                    <th>Asignado a</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tarea in tareas %}
+                                <tr>
+                                    <td>{{ tarea.codigo }}</td>
+                                    <td>{{ tarea.titulo|truncatewords:5 }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if tarea.estado == 'completada' %}bg-success
+                                            {% elif tarea.estado == 'en_progreso' %}bg-primary
+                                            {% elif tarea.estado == 'pendiente' %}bg-secondary
+                                            {% elif tarea.estado == 'vencida' %}bg-danger
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ tarea.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if tarea.prioridad == 'urgente' %}bg-danger
+                                            {% elif tarea.prioridad == 'alta' %}bg-warning text-dark
+                                            {% elif tarea.prioridad == 'media' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ tarea.get_prioridad_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ tarea.fecha_vencimiento|date:"d/m/Y" }}</td>
+                                    <td>{{ tarea.asignado_a.get_full_name|default:tarea.asignado_a.username }}</td>
+                                    <td>
+                                        <a href="{% url 'gestion:tarea_detail' tarea.id_tarea %}" 
+                                           class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check2-square text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay tareas registradas para este cliente</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Contacto -->
+<div class="modal fade" id="nuevoContactoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Contacto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="nuevoContactoForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="cliente" value="{{ cliente.id_cliente }}">
+                    <div class="mb-3">
+                        <label for="nombre_contacto" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre_contacto" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cargo_contacto" class="form-label">Cargo</label>
+                        <input type="text" class="form-control" id="cargo_contacto" name="cargo">
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono_contacto" class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" id="telefono_contacto" name="telefono">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email_contacto" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email_contacto" name="email">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="es_principal" name="es_principal">
+                        <label class="form-check-label" for="es_principal">
+                            Contacto Principal
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarContacto()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Interacción -->
+<div class="modal fade" id="nuevaInteraccionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Interacción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="nuevaInteraccionForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="cliente" value="{{ cliente.id_cliente }}">
+                    <div class="mb-3">
+                        <label for="tipo_interaccion" class="form-label">Tipo *</label>
+                        <select class="form-select" id="tipo_interaccion" name="tipo" required>
+                            <option value="">Seleccione...</option>
+                            <option value="llamada">Llamada</option>
+                            <option value="email">Email</option>
+                            <option value="reunion">Reunión</option>
+                            <option value="visita">Visita</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="asunto_interaccion" class="form-label">Asunto *</label>
+                        <input type="text" class="form-control" id="asunto_interaccion" name="asunto" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descripcion_interaccion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcion_interaccion" name="descripcion" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fecha_seguimiento" class="form-label">Fecha de Seguimiento</label>
+                        <input type="date" class="form-control" id="fecha_seguimiento" name="fecha_seguimiento">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarInteraccion()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 30px;
+    height: calc(100% - 10px);
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 10px;
+}
+
+.timeline-content {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+</style>
+
+<script>
+function guardarContacto() {
+    // Implementar guardado de contacto
+    console.log('Guardar contacto');
+}
+
+function guardarInteraccion() {
+    // Implementar guardado de interacción
+    console.log('Guardar interacción');
+}
+</script>
+{% endblock %}

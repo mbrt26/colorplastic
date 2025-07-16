@@ -1,0 +1,375 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Órdenes de Producción - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        height: 100%;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0.5rem 0;
+    }
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        font-size: 1.5rem;
+    }
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    .progress-ring-circle {
+        stroke-dasharray: 314;
+        stroke-dashoffset: 314;
+        transition: stroke-dashoffset 1s ease-in-out;
+    }
+    .urgente-item {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        background: #fef2f2;
+        border-left: 4px solid #dc2626;
+        margin-bottom: 0.75rem;
+    }
+    .proceso-card {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">Dashboard Órdenes de Producción</h1>
+                <p class="text-muted mb-0">Monitoreo en tiempo real del proceso productivo</p>
+            </div>
+            <div>
+                <a href="{% url 'gestion:ordenes_list' %}" class="btn btn-primary">
+                    <i class="bi bi-list-check me-2"></i>Ver Todas las Órdenes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Órdenes Totales</div>
+                        <div class="stat-value">{{ ordenes_total }}</div>
+                    </div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-clipboard-data"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Órdenes Activas</div>
+                        <div class="stat-value">{{ ordenes_activas }}</div>
+                    </div>
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-gear-wide-connected"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Completadas (Mes)</div>
+                        <div class="stat-value">{{ ordenes_completadas_mes }}</div>
+                    </div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Eficiencia Promedio</div>
+                        <div class="stat-value">{{ eficiencia|floatformat:0 }}%</div>
+                    </div>
+                    <div class="position-relative" style="width: 100px; height: 100px;">
+                        <svg class="progress-ring" width="100" height="100">
+                            <circle cx="50" cy="50" r="45" stroke="#e5e7eb" stroke-width="8" fill="none"></circle>
+                            <circle class="progress-ring-circle" cx="50" cy="50" r="45" 
+                                    stroke="#10b981" stroke-width="8" fill="none"
+                                    data-progress="{{ eficiencia }}"></circle>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Órdenes Urgentes -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-danger bg-opacity-10 border-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Órdenes Urgentes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if ordenes_urgentes %}
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            {% for orden in ordenes_urgentes %}
+                            <div class="urgente-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'gestion:orden_detail' orden.id_orden %}" 
+                                               class="text-decoration-none text-dark">
+                                                {{ orden.numero_orden }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1 text-muted">
+                                            <i class="bi bi-building me-1"></i>{{ orden.pedido.cliente.tercero.nombre }}
+                                        </p>
+                                        <small class="text-danger">
+                                            <i class="bi bi-calendar-x me-1"></i>
+                                            Vence: {{ orden.fecha_programada_fin|date:"d/m/Y" }}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{{ orden.prioridad|default:'normal' }}">
+                                            {{ orden.get_prioridad_display }}
+                                        </span>
+                                        <div class="mt-2">
+                                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=ordenes&orden_produccion_id={{ orden.id_orden }}&titulo=URGENTE:%20{{ orden.numero_orden }}%20-%20Requiere%20atención%20inmediata" 
+                                               class="btn btn-sm btn-danger" title="Crear tarea urgente">
+                                                <i class="bi bi-exclamation-circle me-1"></i>Tarea
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                            <p class="mt-2">No hay órdenes urgentes pendientes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Carga por Proceso -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cpu me-2"></i>Carga de Trabajo por Proceso
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if carga_por_proceso %}
+                        {% for proceso in carga_por_proceso %}
+                        <div class="proceso-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ proceso.tipo_proceso|title }}</h6>
+                                    <small class="text-muted">
+                                        {{ proceso.cantidad }} planificaciones activas
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary">
+                                        {{ proceso.horas_estimadas|default:0 }} hrs
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-2">No hay procesos planificados actualmente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimas Órdenes -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-clock-history me-2"></i>Últimas Órdenes Creadas
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Pedido</th>
+                            <th>Cliente</th>
+                            <th>Fecha Programada</th>
+                            <th>Estado</th>
+                            <th>Supervisor</th>
+                            <th>Avance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orden in ultimas_ordenes %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'gestion:orden_detail' orden.id_orden %}" 
+                                   class="text-decoration-none fw-bold">
+                                    {{ orden.numero_orden }}
+                                </a>
+                            </td>
+                            <td>{{ orden.pedido.numero_pedido }}</td>
+                            <td>{{ orden.pedido.cliente.tercero.nombre }}</td>
+                            <td>
+                                {{ orden.fecha_programada_inicio|date:"d/m/Y" }} - 
+                                {{ orden.fecha_programada_fin|date:"d/m/Y" }}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if orden.estado == 'completada' %}success{% elif orden.estado == 'en_proceso' %}warning text-dark{% elif orden.estado == 'programada' %}primary{% else %}secondary{% endif %}">
+                                    {{ orden.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if orden.supervisor_asignado %}
+                                    {{ orden.supervisor_asignado.get_full_name|default:orden.supervisor_asignado.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ orden.porcentaje_avance }}%">
+                                        {{ orden.porcentaje_avance|floatformat:0 }}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                No hay órdenes registradas
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Animar el círculo de progreso
+document.addEventListener('DOMContentLoaded', function() {
+    const progressCircle = document.querySelector('.progress-ring-circle');
+    if (progressCircle) {
+        const progress = parseFloat(progressCircle.getAttribute('data-progress')) || 0;
+        const radius = 45;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (progress / 100 * circumference);
+        
+        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressCircle.style.strokeDashoffset = circumference;
+        
+        // Trigger animation
+        setTimeout(() => {
+            progressCircle.style.strokeDashoffset = offset;
+        }, 100);
+    }
+    
+    // Gráfico de órdenes por estado
+    const ctx = document.createElement('canvas');
+    ctx.id = 'estadoChart';
+    ctx.style.maxHeight = '300px';
+
+    // Datos para el gráfico
+    const estados = {{ ordenes_por_estado|safe|default:"[]" }};
+    const labels = estados.map(e => e.estado);
+    const data = estados.map(e => e.count);
+
+    // Agregar el canvas al DOM después del header de carga por proceso
+    const cardBody = document.querySelector('.col-lg-6:last-child .card-body');
+    if (cardBody && estados.length > 0) {
+        cardBody.innerHTML = '';
+        cardBody.appendChild(ctx);
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        '#6366f1',
+                        '#f59e0b', 
+                        '#10b981',
+                        '#ef4444',
+                        '#6b7280'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

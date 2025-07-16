@@ -1,0 +1,269 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Lista de Pedidos - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .table-container {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .badge-estado {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+    }
+    .badge-prioridad {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f9fafb;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Lista de Pedidos</h1>
+            <p class="text-muted mb-0">Gestión y seguimiento de pedidos de clientes</p>
+        </div>
+        <a href="{% url 'gestion:pedido_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Pedido
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="busqueda" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Número, cliente, orden de compra...">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="cliente" class="form-label">Cliente</label>
+                    <select class="form-select" id="cliente" name="cliente">
+                        <option value="">Todos los clientes</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id_cliente }}" {% if cliente_id == cliente.id_cliente|stringformat:"s" %}selected{% endif %}>
+                            {{ cliente.tercero.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for value, label in estado_choices %}
+                        <option value="{{ value }}" {% if estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}">
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12 text-end">
+                    <a href="{% url 'gestion:pedidos_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de pedidos -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Número</th>
+                        <th>Cliente</th>
+                        <th>Fecha Pedido</th>
+                        <th>Fecha Requerida</th>
+                        <th>O.C. Cliente</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in page_obj %}
+                    <tr onclick="window.location='{% url 'gestion:pedido_detail' pedido.id_pedido %}';" style="cursor: pointer;">
+                        <td>
+                            <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" 
+                               class="text-decoration-none fw-bold">
+                                {{ pedido.numero_pedido }}
+                            </a>
+                        </td>
+                        <td>
+                            <div>{{ pedido.cliente.tercero.nombre }}</div>
+                            <small class="text-muted">{{ pedido.contacto.nombre }} {{ pedido.contacto.apellido }}</small>
+                        </td>
+                        <td>{{ pedido.fecha_pedido|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if pedido.fecha_requerida < today and pedido.estado != 'completado' %}
+                                <span class="text-danger">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    {{ pedido.fecha_requerida|date:"d/m/Y" }}
+                                </span>
+                            {% else %}
+                                {{ pedido.fecha_requerida|date:"d/m/Y" }}
+                            {% endif %}
+                        </td>
+                        <td>{{ pedido.orden_compra_cliente|default:"-" }}</td>
+                        <td>
+                            <span class="badge badge-estado
+                                {% if pedido.estado == 'borrador' %}bg-secondary
+                                {% elif pedido.estado == 'confirmado' %}bg-primary
+                                {% elif pedido.estado == 'en_produccion' %}bg-warning text-dark
+                                {% elif pedido.estado == 'parcial' %}bg-info
+                                {% elif pedido.estado == 'completado' %}bg-success
+                                {% elif pedido.estado == 'cancelado' %}bg-danger{% endif %}">
+                                {{ pedido.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-prioridad
+                                {% if pedido.prioridad == 'urgente' %}bg-danger
+                                {% elif pedido.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif pedido.prioridad == 'normal' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ pedido.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td class="text-end fw-bold">${{ pedido.total|floatformat:0 }}</td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" 
+                                   class="btn btn-sm btn-outline-primary btn-action" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if pedido.estado in 'borrador,confirmado' %}
+                                <a href="{% url 'gestion:pedido_edit' pedido.id_pedido %}" 
+                                   class="btn btn-sm btn-outline-secondary btn-action" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                                {% if pedido.estado == 'confirmado' %}
+                                <a href="{% url 'gestion:generar_orden_produccion' pedido.id_pedido %}" 
+                                   class="btn btn-sm btn-outline-success btn-action" title="Generar O.P.">
+                                    <i class="bi bi-gear"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Seguimiento {{ pedido.numero_pedido }}" 
+                                   class="btn btn-sm btn-outline-info btn-action" title="Crear tarea">
+                                    <i class="bi bi-clipboard-check"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-2 text-muted">No se encontraron pedidos con los filtros seleccionados</p>
+                            <a href="{% url 'gestion:pedido_create' %}" class="btn btn-primary mt-2">
+                                <i class="bi bi-plus-circle me-2"></i>Crear Primer Pedido
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-light">
+            <nav aria-label="Navegación de pedidos">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if cliente_id %}&cliente={{ cliente_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if cliente_id %}&cliente={{ cliente_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if cliente_id %}&cliente={{ cliente_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            
+            <div class="text-center text-muted mt-2">
+                Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} pedidos
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-submit form on select change
+document.querySelectorAll('#cliente, #estado').forEach(select => {
+    select.addEventListener('change', () => {
+        document.getElementById('filterForm').submit();
+    });
+});
+</script>
+{% endblock %}

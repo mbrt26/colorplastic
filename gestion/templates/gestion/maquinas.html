@@ -79,6 +79,7 @@
                                 <option value="Lavado">Lavado</option>
                                 <option value="Peletizado">Peletizado</option>
                                 <option value="Inyeccion">Inyección</option>
+                                <option value="Homogeneizacion">Homogeneización</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -127,6 +128,7 @@
                                 <option value="Lavado" {% if maquina.tipo_proceso == 'Lavado' %}selected{% endif %}>Lavado</option>
                                 <option value="Peletizado" {% if maquina.tipo_proceso == 'Peletizado' %}selected{% endif %}>Peletizado</option>
                                 <option value="Inyeccion" {% if maquina.tipo_proceso == 'Inyeccion' %}selected{% endif %}>Inyección</option>
+                                <option value="Homogeneizacion" {% if maquina.tipo_proceso == 'Homogeneizacion' %}selected{% endif %}>Homogeneización</option>
                             </select>
                         </div>
                         <div class="mb-3">

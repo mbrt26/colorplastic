@@ -8,7 +8,7 @@ from decimal import Decimal
 from ..models import (
     Bodegas, Lotes, MovimientosInventario, 
     Materiales, Maquinas, Operarios, Terceros,
-    ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion,
+    ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion, ProduccionHomogeneizacion,
     ResiduosProduccion, ProduccionConsumo, MotivoParo, ParosProduccion,
     Despacho, DetalleDespacho
 )
@@ -37,6 +37,7 @@ def dashboard(request):
         'id_produccion_lavado',
         'id_produccion_peletizado',
         'id_produccion_inyeccion',
+        'id_produccion_homogeneizacion',
         'id_operario_reporta',
         'motivo'
     ).order_by('-fecha_hora_inicio')[:10]
@@ -133,17 +134,22 @@ def produccion_dashboard(request):
         'id_operario', 'id_maquina'
     ).all().order_by('-fecha')[:5]
     
+    homogeneizacion_reciente = ProduccionHomogeneizacion.objects.select_related(
+        'id_lote_producido', 'id_operario', 'id_maquina'
+    ).all().order_by('-fecha')[:5]
+    
     # Calcular estadísticas del día
     procesos_hoy = (
         ProduccionMolido.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
         ProduccionLavado.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
         ProduccionPeletizado.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
-        ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).count()
+        ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).count() +
+        ProduccionHomogeneizacion.objects.filter(fecha__range=[inicio_dia, fin_dia]).count()
     )
     
     # Calcular eficiencia promedio del día
     eficiencias = []
-    for modelo in [ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion]:
+    for modelo in [ProduccionMolido, ProduccionLavado, ProduccionPeletizado, ProduccionInyeccion, ProduccionHomogeneizacion]:
         producciones = modelo.objects.filter(fecha__range=[inicio_dia, fin_dia])
         for prod in producciones:
             if prod.cantidad_entrada and prod.cantidad_entrada > 0:
@@ -164,6 +170,9 @@ def produccion_dashboard(request):
     ) + (
         ProduccionInyeccion.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
             total=Sum('cantidad_salida'))['total'] or 0
+    ) + (
+        ProduccionHomogeneizacion.objects.filter(fecha__range=[inicio_dia, fin_dia]).aggregate(
+            total=Sum('cantidad_salida'))['total'] or 0
     )
     
     # Contar paros activos (sin fecha de fin)
@@ -174,6 +183,7 @@ def produccion_dashboard(request):
         'lavado_reciente': lavado_reciente,
         'peletizado_reciente': peletizado_reciente,
         'inyeccion_reciente': inyeccion_reciente,
+        'homogeneizacion_reciente': homogeneizacion_reciente,
         'total_procesos_hoy': procesos_hoy,
         'eficiencia_promedio': eficiencia_promedio,
         'total_producido_kg': total_producido,
@@ -194,10 +204,12 @@ def nuevo_proceso_produccion(request, tipo_proceso):
         'lavado': 'Lavado',
         'peletizado': 'Peletizado',
         'inyeccion': 'Inyeccion',
+        'homogeneizacion': 'Homogeneizacion',
         'Molido': 'Molido',
         'Lavado': 'Lavado',
         'Peletizado': 'Peletizado',
-        'Inyeccion': 'Inyeccion'
+        'Inyeccion': 'Inyeccion',
+        'Homogeneizacion': 'Homogeneizacion'
     }
     
     tipo_proceso_normalizado = tipo_proceso_mapping.get(tipo_proceso, tipo_proceso.capitalize())
@@ -374,6 +386,9 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                 elif tipo_proceso_normalizado == 'Inyeccion':
                     proceso_data['numero_mezclas'] = request.POST.get('numero_mezclas', 1)
                     proceso = ProduccionInyeccion.objects.create(**proceso_data)
+                elif tipo_proceso_normalizado == 'Homogeneizacion':
+                    proceso_data['merma'] = request.POST.get('merma', 0)
+                    proceso = ProduccionHomogeneizacion.objects.create(**proceso_data)
 
                 logger.error("=== REGISTRANDO CONSUMOS ===")
 
@@ -395,6 +410,8 @@ def nuevo_proceso_produccion(request, tipo_proceso):
                         consumo_data['id_produccion_peletizado'] = proceso
                     elif tipo_proceso_normalizado == 'Inyeccion':
                         consumo_data['id_produccion_inyeccion'] = proceso
+                    elif tipo_proceso_normalizado == 'Homogeneizacion':
+                        consumo_data['id_produccion_homogeneizacion'] = proceso
                     
                     consumo = ProduccionConsumo.objects.create(**consumo_data)
                     logger.error(f"Consumo registrado: {consumo.id_consumo}")
@@ -856,6 +873,86 @@ def eliminar_produccion_inyeccion(request, id):
         except Exception as e:
             messages.error(request, f'Error al eliminar el registro: {str(e)}')
     return redirect('gestion:produccion_inyeccion')
+
+@login_required
+def produccion_homogeneizacion(request):
+    """Vista para mostrar y filtrar la producción de homogeneización."""
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    maquina = request.GET.get('maquina')
+    operario = request.GET.get('operario')
+    
+    producciones = ProduccionHomogeneizacion.objects.all()
+    
+    if fecha_inicio:
+        producciones = producciones.filter(fecha__gte=fecha_inicio)
+    if fecha_fin:
+        producciones = producciones.filter(fecha__lte=fecha_fin)
+    if maquina:
+        producciones = producciones.filter(id_maquina=maquina)
+    if operario:
+        producciones = producciones.filter(id_operario=operario)
+    
+    producciones = producciones.order_by('-fecha')
+    
+    context = {
+        'producciones': producciones,
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Homogeneizacion', activo=True),
+        'operarios': Operarios.objects.filter(activo=True),
+    }
+    return render(request, 'gestion/produccion_homogeneizacion.html', context)
+
+@login_required
+def editar_produccion_homogeneizacion(request, id):
+    """Vista para editar un registro de producción de homogeneización."""
+    produccion = get_object_or_404(ProduccionHomogeneizacion, pk=id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Actualizar campos básicos
+                produccion.orden_trabajo = request.POST.get('orden_trabajo')
+                produccion.turno = request.POST.get('turno')
+                produccion.id_operario_id = request.POST.get('id_operario')
+                produccion.id_maquina_id = request.POST.get('id_maquina')
+                produccion.id_bodega_destino_id = request.POST.get('id_bodega_destino')
+                produccion.cantidad_entrada = Decimal(request.POST.get('cantidad_entrada', '0'))
+                produccion.cantidad_salida = Decimal(request.POST.get('cantidad_salida', '0'))
+                produccion.merma = Decimal(request.POST.get('merma', '0'))
+                produccion.observaciones = request.POST.get('observaciones', '')
+                
+                # Archivo adjunto
+                archivo = request.FILES.get('archivo_adjunto')
+                if archivo:
+                    produccion.archivo_adjunto = archivo
+                
+                produccion.save()
+                messages.success(request, 'Producción actualizada exitosamente.')
+                return redirect('gestion:produccion_homogeneizacion')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar la producción: {str(e)}')
+    
+    context = {
+        'produccion': produccion,
+        'operarios': Operarios.objects.filter(activo=True),
+        'maquinas': Maquinas.objects.filter(tipo_proceso='Homogeneizacion', activo=True),
+        'bodegas': Bodegas.objects.all(),
+    }
+    return render(request, 'gestion/editar_produccion_homogeneizacion.html', context)
+
+@login_required
+@transaction.atomic
+def eliminar_produccion_homogeneizacion(request, id):
+    """Vista para eliminar un registro de producción de homogeneización."""
+    produccion = get_object_or_404(ProduccionHomogeneizacion, pk=id)
+    if request.method == 'POST':
+        try:
+            produccion.delete()
+            messages.success(request, 'Registro eliminado exitosamente.')
+            return redirect('gestion:produccion_homogeneizacion')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el registro: {str(e)}')
+    return redirect('gestion:produccion_homogeneizacion')
 
 @login_required
 def lotes(request):
@@ -1368,6 +1465,25 @@ def registrar_paro_inyeccion(request, id_produccion):
         except Exception as e:
             messages.error(request, f'Error al registrar el paro: {str(e)}')
     return redirect('gestion:produccion_inyeccion')
+
+@login_required
+def registrar_paro_homogeneizacion(request, id_produccion):
+    """Vista para registrar un paro en la producción de homogeneización."""
+    produccion = get_object_or_404(ProduccionHomogeneizacion, pk=id_produccion)
+    if request.method == 'POST':
+        try:
+            paro = ParosProduccion.objects.create(
+                id_produccion_homogeneizacion=produccion,
+                fecha_hora_inicio=request.POST.get('fecha_hora_inicio'),
+                fecha_hora_fin=request.POST.get('fecha_hora_fin'),
+                motivo=request.POST.get('motivo'),
+                id_operario_reporta=Operarios.objects.get(pk=request.POST.get('id_operario_reporta')),
+                observaciones=request.POST.get('observaciones')
+            )
+            messages.success(request, 'Paro registrado exitosamente.')
+        except Exception as e:
+            messages.error(request, f'Error al registrar el paro: {str(e)}')
+    return redirect('gestion:produccion_homogeneizacion')
 
 @login_required
 def motivos_paro(request):

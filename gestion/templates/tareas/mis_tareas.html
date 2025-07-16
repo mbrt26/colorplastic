@@ -1,0 +1,331 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Mis Tareas - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .table-container {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .badge-prioridad {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+    .badge-estado {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f9fafb;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .progress-cell {
+        min-width: 120px;
+    }
+    .tarea-vencida {
+        background-color: #fef2f2 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Mis Tareas</h1>
+            <p class="text-muted mb-0">Tareas asignadas a mí o en las que participo</p>
+        </div>
+        <div>
+            <a href="{% url 'gestion:tarea_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nueva Tarea
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="busqueda" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Código, título, descripción...">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for value, label in estado_choices %}
+                        <option value="{{ value }}" {% if estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="prioridad" class="form-label">Prioridad</label>
+                    <select class="form-select" id="prioridad" name="prioridad">
+                        <option value="">Todas las prioridades</option>
+                        {% for value, label in prioridad_choices %}
+                        <option value="{{ value }}" {% if prioridad == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="modulo" class="form-label">Módulo</label>
+                    <select class="form-select" id="modulo" name="modulo">
+                        <option value="">Todos los módulos</option>
+                        {% for value, label in modulo_choices %}
+                        <option value="{{ value }}" {% if modulo == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-1">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}">
+                </div>
+                
+                <div class="col-md-1">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}">
+                </div>
+                
+                <div class="col-md-1 d-flex align-items-end">
+                    <div>
+                        <a href="{% url 'gestion:mis_tareas' %}" class="btn btn-secondary" title="Limpiar filtros">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </a>
+                        <button type="submit" class="btn btn-primary" title="Buscar">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de tareas -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Título</th>
+                        <th>Tipo</th>
+                        <th>Módulo</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th class="progress-cell">Avance</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarea in page_obj %}
+                    <tr onclick="window.location='{% url 'gestion:tarea_detail' tarea.id_tarea %}';" 
+                        class="{% if tarea.estado == 'vencida' %}tarea-vencida{% endif %}"
+                        style="cursor: pointer;">
+                        <td>
+                            <a href="{% url 'gestion:tarea_detail' tarea.id_tarea %}" 
+                               class="text-decoration-none fw-bold">
+                                {{ tarea.codigo }}
+                            </a>
+                        </td>
+                        <td>
+                            <div>{{ tarea.titulo|truncatechars:50 }}</div>
+                            {% if tarea.get_entidad_relacionada %}
+                            <small class="text-muted">
+                                <i class="bi bi-link me-1"></i>{{ tarea.get_entidad_relacionada }}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>{{ tarea.get_tipo_display }}</td>
+                        <td>{{ tarea.get_modulo_origen_display }}</td>
+                        <td>
+                            {% if tarea.estado == 'vencida' %}
+                                <span class="text-danger">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    {{ tarea.fecha_vencimiento|date:"d/m/Y" }}
+                                </span>
+                            {% else %}
+                                {{ tarea.fecha_vencimiento|date:"d/m/Y" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-estado
+                                {% if tarea.estado == 'pendiente' %}bg-secondary
+                                {% elif tarea.estado == 'en_progreso' %}bg-primary
+                                {% elif tarea.estado == 'pausada' %}bg-warning text-dark
+                                {% elif tarea.estado == 'completada' %}bg-success
+                                {% elif tarea.estado == 'cancelada' %}bg-dark
+                                {% elif tarea.estado == 'vencida' %}bg-danger{% endif %}">
+                                {{ tarea.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-prioridad
+                                {% if tarea.prioridad == 'urgente' %}bg-danger
+                                {% elif tarea.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif tarea.prioridad == 'media' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ tarea.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td class="progress-cell">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar 
+                                    {% if tarea.porcentaje_avance >= 100 %}bg-success
+                                    {% elif tarea.porcentaje_avance >= 50 %}bg-primary
+                                    {% else %}bg-warning{% endif %}" 
+                                    role="progressbar" 
+                                    style="width: {{ tarea.porcentaje_avance }}%">
+                                    {{ tarea.porcentaje_avance }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'gestion:tarea_detail' tarea.id_tarea %}" 
+                                   class="btn btn-sm btn-outline-primary btn-action" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if tarea.estado not in 'completada,cancelada' %}
+                                <a href="{% url 'gestion:tarea_edit' tarea.id_tarea %}" 
+                                   class="btn btn-sm btn-outline-secondary btn-action" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                                {% if tarea.estado == 'pendiente' %}
+                                <button class="btn btn-sm btn-outline-success btn-action" 
+                                        onclick="cambiarEstado('{{ tarea.id_tarea }}', 'en_progreso')"
+                                        title="Iniciar">
+                                    <i class="bi bi-play"></i>
+                                </button>
+                                {% elif tarea.estado == 'en_progreso' %}
+                                <button class="btn btn-sm btn-outline-success btn-action" 
+                                        onclick="cambiarEstado('{{ tarea.id_tarea }}', 'completada')"
+                                        title="Completar">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-2 text-muted">No se encontraron tareas con los filtros seleccionados</p>
+                            <a href="{% url 'gestion:tarea_create' %}" class="btn btn-primary mt-2">
+                                <i class="bi bi-plus-circle me-2"></i>Crear Primera Tarea
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-light">
+            <nav aria-label="Navegación de tareas">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if modulo %}&modulo={{ modulo }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if modulo %}&modulo={{ modulo }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if modulo %}&modulo={{ modulo }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            
+            <div class="text-center text-muted mt-2">
+                Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} tareas
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-submit form on select change
+document.querySelectorAll('#estado, #prioridad, #modulo').forEach(select => {
+    select.addEventListener('change', () => {
+        document.getElementById('filterForm').submit();
+    });
+});
+
+// Cambiar estado de tarea
+function cambiarEstado(tareaId, nuevoEstado) {
+    if (!confirm('¿Está seguro de cambiar el estado de esta tarea?')) {
+        return;
+    }
+    
+    fetch(`/gestion/tareas/${tareaId}/cambiar-estado/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `estado=${nuevoEstado}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error al cambiar el estado');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al cambiar el estado');
+    });
+}
+</script>
+{% endblock %}

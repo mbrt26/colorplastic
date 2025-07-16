@@ -24,6 +24,9 @@
                 <li><a class="dropdown-item" href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}">
                     <i class="bi bi-arrow-up-circle me-2"></i>Inyección
                 </a></li>
+                <li><a class="dropdown-item" href="{% url 'gestion:nuevo_proceso_produccion' 'homogeneizacion' %}">
+                    <i class="bi bi-shuffle me-2"></i>Homogeneización
+                </a></li>
             </ul>
         </div>
     </div>
@@ -345,6 +348,75 @@
                         <p class="text-muted mt-2">No hay registros de inyección recientes.</p>
                         <a href="{% url 'gestion:nuevo_proceso_produccion' 'inyeccion' %}" class="btn btn-primary btn-sm">
                             Crear Proceso de Inyección
+        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Homogeneización -->
+        <div class="col-lg-6 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-shuffle me-2"></i>Homogeneización
+                            <span class="badge bg-light text-dark ms-2">{{ homogeneizacion_reciente|length }}</span>
+                        </h5>
+                        <a href="{% url 'gestion:produccion_homogeneizacion' %}" class="btn btn-sm btn-outline-primary">
+                            Ver Todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if homogeneizacion_reciente %}
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>OT</th>
+                                    <th>Cantidad</th>
+                                    <th>Eficiencia</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in homogeneizacion_reciente %}
+                                <tr>
+                                    <td>{{ prod.fecha|date:"d/m H:i" }}</td>
+                                    <td>{{ prod.orden_trabajo|default:"N/A" }}</td>
+                                    <td>{{ prod.cantidad_salida|floatformat:1 }} kg</td>
+                                    <td>
+                                        <span class="badge {% if prod.eficiencia >= 95 %}bg-success{% elif prod.eficiencia >= 85 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ prod.eficiencia|floatformat:1 }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'gestion:editar_produccion_homogeneizacion' prod.id_produccion %}" 
+                                               class="btn btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="eliminarProduccion('homogeneizacion', '{{ prod.id_produccion }}')" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay registros de homogeneización recientes.</p>
+                        <a href="{% url 'gestion:nuevo_proceso_produccion' 'homogeneizacion' %}" class="btn btn-primary btn-sm">
+                            Crear Proceso de Homogeneización
                         </a>
                     </div>
                     {% endif %}

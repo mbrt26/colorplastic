@@ -66,6 +66,16 @@
         <div class="col-md-6">
           <p><strong>Tercero:</strong> {{ despacho.tercero.nombre }}</p>
           <p><strong>Dirección:</strong> {{ despacho.direccion_entrega }}</p>
+          {% if despacho.orden_compra %}
+          <p><strong>Orden de Compra:</strong> {{ despacho.orden_compra }}</p>
+          {% endif %}
+          {% if despacho.archivo_adjunto %}
+          <p><strong>Archivo Adjunto:</strong> 
+            <a href="{{ despacho.archivo_adjunto.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-file-earmark"></i> {{ despacho.archivo_adjunto.name|cut:"despachos/archivos/" }}
+            </a>
+          </p>
+          {% endif %}
           <p><strong>Estado:</strong> 
             <span class="badge bg-{% if despacho.estado == 'pendiente' %}warning{% elif despacho.estado == 'despachado' %}success{% elif despacho.estado == 'cancelado' %}danger{% else %}info{% endif %}">
               {{ despacho.get_estado_display }}

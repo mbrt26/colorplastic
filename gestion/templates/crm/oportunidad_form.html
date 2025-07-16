@@ -1,0 +1,253 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if oportunidad %}Editar{% else %}Nueva{% endif %} Oportunidad - CRM
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    .form-section h3 {
+        margin-bottom: 1.5rem;
+        color: #1f2937;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    {% if oportunidad %}Editar{% else %}Nueva{% endif %} Oportunidad
+                </h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    {% if oportunidad %}
+                        Actualizar información de la oportunidad
+                    {% else %}
+                        Registrar nueva oportunidad de negocio
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{% if oportunidad %}{% url 'gestion:oportunidad_detail' oportunidad.id_oportunidad %}{% else %}{% url 'gestion:oportunidades_list' %}{% endif %}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Cancelar
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="oportunidadForm">
+        {% csrf_token %}
+        
+        <!-- Información General -->
+        <div class="form-section">
+            <h3>Información General</h3>
+            <div class="form-grid">
+                <div class="col-span-2">
+                    <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre de la Oportunidad</label>
+                    <input type="text" name="nombre" id="nombre" required
+                           value="{% if oportunidad %}{{ oportunidad.nombre }}{% endif %}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                
+                {% if not oportunidad %}
+                <div>
+                    <label for="cliente" class="block text-sm font-medium text-gray-700">Cliente</label>
+                    <select name="cliente" id="cliente" required onchange="cargarContactos()"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">Seleccionar cliente...</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id_cliente }}">{{ cliente.tercero.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="contacto" class="block text-sm font-medium text-gray-700">Contacto</label>
+                    <select name="contacto" id="contacto" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">Seleccionar contacto...</option>
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div>
+                    <label for="etapa" class="block text-sm font-medium text-gray-700">Etapa</label>
+                    <select name="etapa" id="etapa" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for value, label in etapa_choices %}
+                        <option value="{{ value }}" {% if oportunidad and oportunidad.etapa == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="prioridad" class="block text-sm font-medium text-gray-700">Prioridad</label>
+                    <select name="prioridad" id="prioridad" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for value, label in prioridad_choices %}
+                        <option value="{{ value }}" {% if oportunidad and oportunidad.prioridad == value %}selected{% elif not oportunidad and value == 'media' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-span-2">
+                    <label for="descripcion" class="block text-sm font-medium text-gray-700">Descripción</label>
+                    <textarea name="descripcion" id="descripcion" rows="4" required
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% if oportunidad %}{{ oportunidad.descripcion }}{% endif %}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información Financiera -->
+        <div class="form-section">
+            <h3>Información Financiera</h3>
+            <div class="form-grid">
+                <div>
+                    <label for="valor_estimado" class="block text-sm font-medium text-gray-700">Valor Estimado ($)</label>
+                    <input type="number" name="valor_estimado" id="valor_estimado" required step="0.01" min="0"
+                           value="{% if oportunidad %}{{ oportunidad.valor_estimado }}{% endif %}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="probabilidad" class="block text-sm font-medium text-gray-700">Probabilidad (%)</label>
+                    <input type="number" name="probabilidad" id="probabilidad" required min="0" max="100"
+                           value="{% if oportunidad %}{{ oportunidad.probabilidad }}{% else %}50{% endif %}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="fecha_cierre_estimada" class="block text-sm font-medium text-gray-700">Fecha de Cierre Estimada</label>
+                    <input type="date" name="fecha_cierre_estimada" id="fecha_cierre_estimada" required
+                           value="{% if oportunidad %}{{ oportunidad.fecha_cierre_estimada|date:'Y-m-d' }}{% endif %}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="usuario_asignado" class="block text-sm font-medium text-gray-700">Usuario Asignado</label>
+                    <select name="usuario_asignado" id="usuario_asignado" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}" {% if oportunidad and oportunidad.usuario_asignado == usuario %}selected{% elif not oportunidad and usuario == user %}selected{% endif %}>
+                            {{ usuario.get_full_name|default:usuario.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seguimiento -->
+        <div class="form-section">
+            <h3>Seguimiento</h3>
+            <div class="form-grid">
+                <div class="col-span-2">
+                    <label for="proximo_paso" class="block text-sm font-medium text-gray-700">Próximo Paso</label>
+                    <input type="text" name="proximo_paso" id="proximo_paso"
+                           value="{% if oportunidad %}{{ oportunidad.proximo_paso|default:'' }}{% endif %}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="fecha_proximo_paso" class="block text-sm font-medium text-gray-700">Fecha Próximo Paso</label>
+                    <input type="date" name="fecha_proximo_paso" id="fecha_proximo_paso"
+                           value="{% if oportunidad and oportunidad.fecha_proximo_paso %}{{ oportunidad.fecha_proximo_paso|date:'Y-m-d' }}{% endif %}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+            
+            <div id="motivoPerdidaSection" class="mt-4" style="display: none;">
+                <label for="motivo_perdida" class="block text-sm font-medium text-gray-700">Motivo de Pérdida</label>
+                <textarea name="motivo_perdida" id="motivo_perdida" rows="3"
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% if oportunidad %}{{ oportunidad.motivo_perdida|default:'' }}{% endif %}</textarea>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex justify-end space-x-3">
+            <button type="button" onclick="history.back()"
+                    class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Cancelar
+            </button>
+            <button type="submit"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                {% if oportunidad %}Actualizar{% else %}Crear{% endif %} Oportunidad
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+{% if not oportunidad %}
+function cargarContactos() {
+    const clienteId = document.getElementById('cliente').value;
+    const contactoSelect = document.getElementById('contacto');
+    
+    contactoSelect.innerHTML = '<option value="">Cargando...</option>';
+    
+    if (!clienteId) {
+        contactoSelect.innerHTML = '<option value="">Seleccionar contacto...</option>';
+        return;
+    }
+    
+    fetch(`{% url 'gestion:get_contactos_by_cliente' %}?cliente_id=${clienteId}`)
+        .then(response => response.json())
+        .then(data => {
+            contactoSelect.innerHTML = '<option value="">Seleccionar contacto...</option>';
+            data.contactos.forEach(contacto => {
+                const option = document.createElement('option');
+                option.value = contacto.id;
+                option.textContent = contacto.nombre + (contacto.cargo ? ` - ${contacto.cargo}` : '');
+                contactoSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            contactoSelect.innerHTML = '<option value="">Error al cargar contactos</option>';
+        });
+}
+{% endif %}
+
+// Mostrar/ocultar campo de motivo de pérdida
+document.getElementById('etapa').addEventListener('change', function() {
+    const motivoSection = document.getElementById('motivoPerdidaSection');
+    if (this.value === 'perdida') {
+        motivoSection.style.display = 'block';
+    } else {
+        motivoSection.style.display = 'none';
+    }
+});
+
+// Ejecutar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    const etapaSelect = document.getElementById('etapa');
+    if (etapaSelect.value === 'perdida') {
+        document.getElementById('motivoPerdidaSection').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

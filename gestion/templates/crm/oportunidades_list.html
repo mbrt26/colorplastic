@@ -1,0 +1,300 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Oportunidades - CRM ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-graph-up me-2"></i>Pipeline de Oportunidades</h2>
+        <div class="btn-group">
+            <a href="{% url 'gestion:crm_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Dashboard CRM
+            </a>
+            <a href="{% url 'gestion:oportunidad_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nueva Oportunidad
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs del Pipeline -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ oportunidades_totales }}</div>
+                <div class="stat-label">Oportunidades Totales</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">${{ valor_total|floatformat:0 }}</div>
+                <div class="stat-label">Valor Total Pipeline</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">${{ valor_ponderado|floatformat:0 }}</div>
+                <div class="stat-label">Valor Ponderado</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ probabilidad_promedio|floatformat:0 }}%</div>
+                <div class="stat-label">Probabilidad Promedio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="busqueda" class="form-label">Búsqueda</label>
+                    <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Nombre, cliente, descripción...">
+                </div>
+                <div class="col-md-2">
+                    <label for="etapa" class="form-label">Etapa</label>
+                    <select class="form-select" id="etapa" name="etapa">
+                        <option value="">Todas</option>
+                        {% for value, display in etapa_choices %}
+                        <option value="{{ value }}" {% if etapa == value %}selected{% endif %}>
+                            {{ display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="prioridad" class="form-label">Prioridad</label>
+                    <select class="form-select" id="prioridad" name="prioridad">
+                        <option value="">Todas</option>
+                        {% for value, display in prioridad_choices %}
+                        <option value="{{ value }}" {% if prioridad == value %}selected{% endif %}>
+                            {{ display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                           value="{{ fecha_desde }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                           value="{{ fecha_hasta }}">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vista Kanban por Etapas -->
+    <div class="row mb-4">
+        {% for etapa_key, etapa_display in etapa_choices %}
+        <div class="col-md-2">
+            <div class="card kanban-column">
+                <div class="card-header text-center bg-light">
+                    <h6 class="mb-0">{{ etapa_display }}</h6>
+                    <small class="text-muted">
+                        {% for key, count in oportunidades_por_etapa.items %}
+                            {% if key == etapa_key %}{{ count }}{% endif %}
+                        {% endfor %} oportunidades
+                    </small>
+                </div>
+                <div class="card-body p-2">
+                    {% for oportunidad in page_obj %}
+                        {% if oportunidad.etapa == etapa_key %}
+                        <div class="kanban-card mb-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <small class="fw-bold text-truncate">{{ oportunidad.nombre|truncatechars:25 }}</small>
+                                <span class="badge 
+                                    {% if oportunidad.prioridad == 'alta' %}bg-danger
+                                    {% elif oportunidad.prioridad == 'media' %}bg-warning
+                                    {% else %}bg-info
+                                    {% endif %} ms-1">
+                                    <i class="bi bi-flag-fill"></i>
+                                </span>
+                            </div>
+                            <small class="text-muted d-block">{{ oportunidad.cliente.tercero.nombre|truncatechars:20 }}</small>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="fw-bold">${{ oportunidad.valor_estimado|floatformat:0 }}</small>
+                                <small class="text-muted">{{ oportunidad.probabilidad }}%</small>
+                            </div>
+                            <div class="mt-2">
+                                <a href="#" class="btn btn-sm btn-outline-primary w-100">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Vista de Tabla -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>Vista de Lista
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-colorplastic mb-0">
+                    <thead>
+                        <tr>
+                            <th>Oportunidad</th>
+                            <th>Cliente</th>
+                            <th>Etapa</th>
+                            <th>Valor</th>
+                            <th>Probabilidad</th>
+                            <th>Valor Ponderado</th>
+                            <th>Cierre Estimado</th>
+                            <th>Prioridad</th>
+                            <th>Asignado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for oportunidad in page_obj %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <div class="fw-bold">{{ oportunidad.nombre }}</div>
+                                    <small class="text-muted">{{ oportunidad.descripcion|truncatechars:50 }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{% url 'gestion:cliente_detail' oportunidad.cliente.id_cliente %}">
+                                    {{ oportunidad.cliente.tercero.nombre|truncatechars:25 }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if oportunidad.etapa == 'prospeccion' %}bg-info
+                                    {% elif oportunidad.etapa == 'calificacion' %}bg-primary
+                                    {% elif oportunidad.etapa == 'propuesta' %}bg-warning
+                                    {% elif oportunidad.etapa == 'negociacion' %}bg-danger
+                                    {% elif oportunidad.etapa == 'ganada' %}bg-success
+                                    {% else %}bg-secondary
+                                    {% endif %}">
+                                    {{ oportunidad.get_etapa_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">${{ oportunidad.valor_estimado|floatformat:0 }}</td>
+                            <td class="text-center">{{ oportunidad.probabilidad }}%</td>
+                            <td class="text-end fw-bold">
+                                ${{ oportunidad.valor_ponderado|floatformat:0 }}
+                            </td>
+                            <td>{{ oportunidad.fecha_cierre_estimada|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if oportunidad.prioridad == 'alta' %}bg-danger
+                                    {% elif oportunidad.prioridad == 'media' %}bg-warning
+                                    {% else %}bg-info
+                                    {% endif %}">
+                                    {{ oportunidad.get_prioridad_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ oportunidad.usuario_asignado.first_name }} {{ oportunidad.usuario_asignado.last_name|slice:":1" }}.</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary" title="Ver Detalle">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info" title="Actividad">
+                                        <i class="bi bi-chat-dots"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-4">
+                                <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mt-2">No se encontraron oportunidades</p>
+                                <a href="{% url 'gestion:oportunidad_create' %}" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle me-2"></i>Crear Primera Oportunidad
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Paginación de oportunidades" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+.kanban-column {
+    height: 600px;
+    overflow-y: auto;
+}
+
+.kanban-card {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    transition: transform 0.2s;
+}
+
+.kanban-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+
+{% endblock %}

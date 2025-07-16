@@ -1,0 +1,501 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}{{ tarea.codigo }} - {{ tarea.titulo }} - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .detail-header {
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .detail-row {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    .detail-label {
+        font-weight: 600;
+        color: #6b7280;
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+    }
+    .subtarea-item {
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .subtarea-item:hover {
+        background: #f3f4f6;
+    }
+    .subtarea-item.completada {
+        opacity: 0.7;
+        text-decoration: line-through;
+    }
+    .comment-box {
+        background: #f9fafb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .comment-box.interno {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+    }
+    .progress-lg {
+        height: 30px;
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="{% url 'gestion:tareas_dashboard' %}">Tareas</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'gestion:mis_tareas' %}">Mis Tareas</a></li>
+                        <li class="breadcrumb-item active">{{ tarea.codigo }}</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0 text-gray-800">{{ tarea.titulo }}</h1>
+                <p class="text-muted mb-0">Creada el {{ tarea.fecha_creacion|date:"d/m/Y H:i" }} por {{ tarea.creado_por.get_full_name|default:tarea.creado_por.username }}</p>
+            </div>
+            <div>
+                {% if puede_editar and tarea.estado not in 'completada,cancelada' %}
+                <a href="{% url 'gestion:tarea_edit' tarea.id_tarea %}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil me-2"></i>Editar
+                </a>
+                {% endif %}
+                <a href="{% url 'gestion:mis_tareas' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información principal -->
+        <div class="col-lg-8">
+            <!-- Estado y Resumen -->
+            <div class="detail-card">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="status-badge 
+                                {% if tarea.estado == 'completada' %}bg-success bg-opacity-10 text-success
+                                {% elif tarea.estado == 'en_progreso' %}bg-primary bg-opacity-10 text-primary
+                                {% elif tarea.estado == 'pendiente' %}bg-secondary bg-opacity-10 text-secondary
+                                {% elif tarea.estado == 'pausada' %}bg-warning bg-opacity-10 text-warning
+                                {% elif tarea.estado == 'vencida' %}bg-danger bg-opacity-10 text-danger
+                                {% else %}bg-dark bg-opacity-10 text-dark{% endif %}">
+                                <i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>
+                                {{ tarea.get_estado_display }}
+                            </div>
+                            
+                            <!-- Cambiar estado -->
+                            {% if puede_editar and tarea.estado not in 'completada,cancelada' %}
+                            <div class="mt-3">
+                                {% if tarea.estado == 'pendiente' or tarea.estado == 'vencida' %}
+                                    <button class="btn btn-sm btn-primary" onclick="cambiarEstado('en_progreso')">
+                                        <i class="bi bi-play me-1"></i>Iniciar
+                                    </button>
+                                {% elif tarea.estado == 'en_progreso' %}
+                                    <button class="btn btn-sm btn-warning" onclick="cambiarEstado('pausada')">
+                                        <i class="bi bi-pause me-1"></i>Pausar
+                                    </button>
+                                    <button class="btn btn-sm btn-success ms-1" onclick="cambiarEstado('completada')">
+                                        <i class="bi bi-check me-1"></i>Completar
+                                    </button>
+                                {% elif tarea.estado == 'pausada' %}
+                                    <button class="btn btn-sm btn-primary" onclick="cambiarEstado('en_progreso')">
+                                        <i class="bi bi-play me-1"></i>Reanudar
+                                    </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-danger ms-1" onclick="cambiarEstado('cancelada')">
+                                    <i class="bi bi-x me-1"></i>Cancelar
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-muted mb-1">Prioridad</h5>
+                            <span class="badge 
+                                {% if tarea.prioridad == 'urgente' %}bg-danger
+                                {% elif tarea.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif tarea.prioridad == 'media' %}bg-info
+                                {% else %}bg-secondary{% endif %} fs-6">
+                                {{ tarea.get_prioridad_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-muted mb-1">Avance</h5>
+                            <div class="progress progress-lg">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ tarea.porcentaje_avance }}%">
+                                    {{ tarea.porcentaje_avance }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información General -->
+            <div class="detail-card">
+                <h5 class="detail-header">Información General</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="detail-row">
+                            <span class="detail-label">Código:</span>
+                            <span class="float-end">{{ tarea.codigo }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Tipo:</span>
+                            <span class="float-end">{{ tarea.get_tipo_display }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Módulo:</span>
+                            <span class="float-end">{{ tarea.get_modulo_origen_display }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Asignado a:</span>
+                            <span class="float-end">{{ tarea.asignado_a.get_full_name|default:tarea.asignado_a.username }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-row">
+                            <span class="detail-label">Fecha Vencimiento:</span>
+                            <span class="float-end {% if tarea.estado == 'vencida' %}text-danger{% endif %}">
+                                {{ tarea.fecha_vencimiento|date:"d/m/Y H:i" }}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Fecha Inicio:</span>
+                            <span class="float-end">
+                                {% if tarea.fecha_inicio %}
+                                    {{ tarea.fecha_inicio|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Fecha Completado:</span>
+                            <span class="float-end">
+                                {% if tarea.fecha_completado %}
+                                    {{ tarea.fecha_completado|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Categoría:</span>
+                            <span class="float-end">{{ tarea.categoria|default:"-" }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <span class="detail-label">Descripción:</span>
+                    <p class="mt-1 mb-0">{{ tarea.descripcion|linebreaksbr }}</p>
+                </div>
+                
+                {% if tarea.etiquetas %}
+                <div class="mt-3">
+                    <span class="detail-label">Etiquetas:</span>
+                    <div class="mt-1">
+                        {% for etiqueta in tarea.etiquetas %}
+                        <span class="badge bg-secondary me-1">{{ etiqueta }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if entidad_relacionada %}
+                <div class="mt-3">
+                    <span class="detail-label">Entidad Relacionada:</span>
+                    <div class="mt-1">
+                        {% if tarea.cliente %}
+                            <a href="{% url 'gestion:cliente_detail' tarea.cliente.id_cliente %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-building me-1"></i>{{ tarea.cliente }}
+                            </a>
+                        {% elif tarea.pedido %}
+                            <a href="{% url 'gestion:pedido_detail' tarea.pedido.id_pedido %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-clipboard-check me-1"></i>{{ tarea.pedido }}
+                            </a>
+                        {% elif tarea.orden_produccion %}
+                            <a href="{% url 'gestion:orden_detail' tarea.orden_produccion.id_orden %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-gear me-1"></i>{{ tarea.orden_produccion }}
+                            </a>
+                        {% elif tarea.oportunidad %}
+                            <a href="{% url 'gestion:oportunidad_detail' tarea.oportunidad.id_oportunidad %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-currency-dollar me-1"></i>{{ tarea.oportunidad }}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Comentarios -->
+            <div class="detail-card">
+                <h5 class="detail-header">Comentarios y Seguimiento</h5>
+                
+                <!-- Formulario para agregar comentario -->
+                {% if puede_editar %}
+                <div class="mb-4">
+                    <form id="comentarioForm" onsubmit="agregarComentario(event)">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="comentarioTexto" rows="3" 
+                                      placeholder="Agregar un comentario..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="esInterno">
+                                <label class="form-check-label" for="esInterno">
+                                    Comentario interno (no visible al cliente)
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>Enviar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+                
+                <!-- Lista de comentarios -->
+                <div id="comentariosList">
+                    {% for comentario in comentarios %}
+                    <div class="comment-box {% if comentario.es_interno %}interno{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong>{{ comentario.usuario.get_full_name|default:comentario.usuario.username }}</strong>
+                                {% if comentario.es_interno %}
+                                <span class="badge bg-warning text-dark ms-1">Interno</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ comentario.fecha|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0">{{ comentario.comentario|linebreaksbr }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-3">No hay comentarios aún</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Subtareas -->
+            <div class="detail-card">
+                <h5 class="detail-header">Subtareas ({{ subtareas.count }})</h5>
+                
+                {% if subtareas %}
+                <div id="subtareasList">
+                    {% for subtarea in subtareas %}
+                    <div class="subtarea-item {% if subtarea.completada %}completada{% endif %}" 
+                         onclick="toggleSubtarea('{{ subtarea.id_subtarea }}')">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="subtarea-{{ subtarea.id_subtarea }}"
+                                   {% if subtarea.completada %}checked{% endif %}
+                                   {% if not puede_editar %}disabled{% endif %}>
+                            <label class="form-check-label w-100" for="subtarea-{{ subtarea.id_subtarea }}">
+                                {{ subtarea.titulo }}
+                                {% if subtarea.completada and subtarea.completado_por %}
+                                <small class="text-muted d-block">
+                                    Completado por {{ subtarea.completado_por.get_full_name|default:subtarea.completado_por.username }}
+                                    el {{ subtarea.fecha_completado|date:"d/m/Y" }}
+                                </small>
+                                {% endif %}
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">No hay subtareas definidas</p>
+                {% endif %}
+            </div>
+
+            <!-- Equipo -->
+            {% if tarea.equipo.exists %}
+            <div class="detail-card">
+                <h5 class="detail-header">Equipo</h5>
+                <div>
+                    {% for miembro in tarea.equipo.all %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="user-avatar me-2">
+                            {{ miembro.first_name|slice:":1" }}{{ miembro.last_name|slice:":1" }}
+                        </div>
+                        <div>
+                            <div>{{ miembro.get_full_name|default:miembro.username }}</div>
+                            <small class="text-muted">{{ miembro.email }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Configuración de Recordatorios -->
+            <div class="detail-card">
+                <h5 class="detail-header">Recordatorios</h5>
+                <div class="detail-row">
+                    <span class="detail-label">Enviar recordatorio:</span>
+                    <span class="float-end">
+                        {% if tarea.enviar_recordatorio %}
+                            <i class="bi bi-check-circle text-success"></i> Sí
+                        {% else %}
+                            <i class="bi bi-x-circle text-danger"></i> No
+                        {% endif %}
+                    </span>
+                </div>
+                {% if tarea.enviar_recordatorio %}
+                <div class="detail-row">
+                    <span class="detail-label">Días antes:</span>
+                    <span class="float-end">{{ tarea.dias_antes_recordatorio }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Recordatorio enviado:</span>
+                    <span class="float-end">
+                        {% if tarea.recordatorio_enviado %}
+                            <i class="bi bi-check-circle text-success"></i> Sí
+                        {% else %}
+                            <i class="bi bi-clock text-warning"></i> Pendiente
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #6b7280;
+}
+</style>
+
+<script>
+// Cambiar estado de tarea
+function cambiarEstado(nuevoEstado) {
+    if (!confirm('¿Está seguro de cambiar el estado de esta tarea?')) {
+        return;
+    }
+    
+    fetch("{% url 'gestion:cambiar_estado_tarea' tarea.id_tarea %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `estado=${nuevoEstado}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error al cambiar el estado');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al cambiar el estado');
+    });
+}
+
+// Toggle subtarea
+function toggleSubtarea(subtareaId) {
+    {% if puede_editar %}
+    fetch(`/gestion/tareas/subtarea/${subtareaId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error al actualizar subtarea');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al actualizar subtarea');
+    });
+    {% endif %}
+}
+
+// Agregar comentario
+function agregarComentario(event) {
+    event.preventDefault();
+    
+    const comentario = document.getElementById('comentarioTexto').value;
+    const esInterno = document.getElementById('esInterno').checked;
+    
+    fetch("{% url 'gestion:agregar_comentario' tarea.id_tarea %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `comentario=${encodeURIComponent(comentario)}&es_interno=${esInterno}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error al agregar comentario');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al agregar comentario');
+    });
+}
+</script>
+{% endblock %}

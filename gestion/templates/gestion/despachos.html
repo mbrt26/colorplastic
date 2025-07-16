@@ -16,6 +16,8 @@
                 <tr>
                     <th>Remisión</th>
                     <th>Tercero</th>
+                    <th>Orden de Compra</th>
+                    <th>Archivo</th>
                     <th>Fecha</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -26,6 +28,16 @@
                 <tr>
                     <td>{{ d.numero_remision }}</td>
                     <td>{{ d.tercero.nombre }}</td>
+                    <td>{{ d.orden_compra|default:"-" }}</td>
+                    <td>
+                        {% if d.archivo_adjunto %}
+                            <a href="{{ d.archivo_adjunto.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-file-earmark"></i> Ver
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     <td>{{ d.fecha_despacho|date:'Y-m-d' }}</td>
                     <td>{{ d.get_estado_display }}</td>
                     <td>
@@ -36,7 +48,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center">No hay despachos registrados</td>
+                    <td colspan="7" class="text-center">No hay despachos registrados</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -52,7 +64,7 @@
         <h5 class="modal-title">Nuevo Despacho</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form method="post" id="formNuevoDespacho">
+      <form method="post" id="formNuevoDespacho" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="modal-body">
           <!-- Información General del Despacho -->
@@ -83,6 +95,19 @@
               <div class="mb-3">
                 <label class="form-label">Dirección de Entrega *</label>
                 <input type="text" name="direccion_entrega" class="form-control" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Orden de Compra</label>
+                <input type="text" name="orden_compra" class="form-control" placeholder="Ingrese orden de compra">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Archivo Adjunto</label>
+                <input type="file" name="archivo_adjunto" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+                <small class="form-text text-muted">Formatos: PDF, DOC, DOCX, JPG, PNG, XLSX, XLS</small>
               </div>
             </div>
             <div class="col-12">

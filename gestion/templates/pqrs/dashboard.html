@@ -1,0 +1,432 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard PQRS - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        height: 100%;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0.5rem 0;
+    }
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        font-size: 1.5rem;
+    }
+    .urgente-item {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        background: #fef2f2;
+        border-left: 4px solid #dc2626;
+        margin-bottom: 0.75rem;
+    }
+    .recent-item {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        background: #f9fafb;
+        border-left: 4px solid #3b82f6;
+        margin-bottom: 0.75rem;
+    }
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    .progress-ring-circle {
+        stroke-dasharray: 314;
+        stroke-dashoffset: 314;
+        transition: stroke-dashoffset 1s ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">Dashboard PQRS</h1>
+                <p class="text-muted mb-0">Monitoreo de Peticiones, Quejas, Reclamos y Sugerencias</p>
+            </div>
+            <div>
+                <a href="{% url 'gestion:pqrs_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Nueva PQRS
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Total PQRS</div>
+                        <div class="stat-value">{{ total_pqrs }}</div>
+                    </div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-clipboard-data"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">PQRS Abiertas</div>
+                        <div class="stat-value">{{ pqrs_abiertas }}</div>
+                    </div>
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">PQRS Vencidas</div>
+                        <div class="stat-value text-danger">{{ pqrs_vencidas }}</div>
+                    </div>
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Cumplimiento SLA</div>
+                        <div class="stat-value">{{ cumplimiento_sla|floatformat:0 }}%</div>
+                    </div>
+                    <div class="position-relative" style="width: 80px; height: 80px;">
+                        <svg class="progress-ring" width="80" height="80">
+                            <circle cx="40" cy="40" r="35" stroke="#e5e7eb" stroke-width="6" fill="none"></circle>
+                            <circle class="progress-ring-circle" cx="40" cy="40" r="35" 
+                                    stroke="#10b981" stroke-width="6" fill="none"
+                                    data-progress="{{ cumplimiento_sla }}"></circle>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- PQRS Urgentes -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-danger bg-opacity-10 border-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>PQRS Urgentes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if pqrs_urgentes %}
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            {% for pqrs in pqrs_urgentes %}
+                            <div class="urgente-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" 
+                                               class="text-decoration-none text-dark">
+                                                {{ pqrs.numero_pqrs }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1">{{ pqrs.asunto|truncatewords:8 }}</p>
+                                        <p class="mb-1 text-muted">
+                                            <i class="bi bi-person me-1"></i>{{ pqrs.nombre_contacto }}
+                                        </p>
+                                        <small class="text-danger">
+                                            <i class="bi bi-clock me-1"></i>
+                                            Vence: {{ pqrs.fecha_vencimiento|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge 
+                                            {% if pqrs.tipo == 'reclamo' %}bg-danger
+                                            {% elif pqrs.tipo == 'queja' %}bg-warning text-dark
+                                            {% elif pqrs.tipo == 'peticion' %}bg-info
+                                            {% elif pqrs.tipo == 'sugerencia' %}bg-secondary
+                                            {% else %}bg-success{% endif %}">
+                                            {{ pqrs.get_tipo_display }}
+                                        </span>
+                                        <div class="mt-2">
+                                            <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="bi bi-eye me-1"></i>Ver
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                            <p class="mt-2">No hay PQRS urgentes pendientes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- PQRS Recientes -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary bg-opacity-10 border-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>PQRS Recientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if pqrs_recientes %}
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            {% for pqrs in pqrs_recientes %}
+                            <div class="recent-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" 
+                                               class="text-decoration-none text-dark">
+                                                {{ pqrs.numero_pqrs }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1">{{ pqrs.asunto|truncatewords:8 }}</p>
+                                        <p class="mb-1 text-muted">
+                                            <i class="bi bi-person me-1"></i>{{ pqrs.nombre_contacto }}
+                                        </p>
+                                        <small class="text-primary">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge 
+                                            {% if pqrs.estado == 'recibida' %}bg-secondary
+                                            {% elif pqrs.estado == 'en_proceso' %}bg-warning text-dark
+                                            {% elif pqrs.estado == 'solucionada' %}bg-success
+                                            {% elif pqrs.estado == 'cerrada' %}bg-dark
+                                            {% else %}bg-info{% endif %}">
+                                            {{ pqrs.get_estado_display }}
+                                        </span>
+                                        <div class="mt-2">
+                                            <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye me-1"></i>Ver
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-2">No hay PQRS recientes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y estadísticas -->
+    <div class="row g-4 mt-4">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">PQRS por Tipo</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="tipoChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">PQRS por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="estadoChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tiempos de Respuesta</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        {% if tiempo_promedio_respuesta %}
+                        <div class="mb-3">
+                            <div class="stat-value text-primary">{{ tiempo_promedio_respuesta.total_seconds|floatformat:0 }}s</div>
+                            <div class="stat-label">Tiempo Promedio Respuesta</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if tiempo_promedio_solucion %}
+                        <div class="mb-3">
+                            <div class="stat-value text-success">{{ tiempo_promedio_solucion.total_seconds|floatformat:0 }}s</div>
+                            <div class="stat-label">Tiempo Promedio Solución</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if satisfaccion_promedio %}
+                        <div>
+                            <div class="stat-value text-warning">{{ satisfaccion_promedio|floatformat:1 }}/5</div>
+                            <div class="stat-label">Satisfacción Promedio</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="row g-4 mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:pqrs_create' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle me-2"></i>Nueva PQRS
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:pqrs_list' %}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-list-ul me-2"></i>Ver Todas
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:mis_pqrs' %}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-person-check me-2"></i>Mis PQRS
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'gestion:pqrs_list' %}?solo_vencidas=1" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Vencidas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gráfico de PQRS por tipo
+const tipoData = {{ pqrs_por_tipo|safe }};
+new Chart(document.getElementById('tipoChart'), {
+    type: 'doughnut',
+    data: {
+        labels: tipoData.map(d => d.tipo),
+        datasets: [{
+            data: tipoData.map(d => d.count),
+            backgroundColor: [
+                '#ef4444', '#f59e0b', '#3b82f6', '#6b7280', '#10b981'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Gráfico de PQRS por estado
+const estadoData = {{ pqrs_por_estado|safe }};
+new Chart(document.getElementById('estadoChart'), {
+    type: 'bar',
+    data: {
+        labels: estadoData.map(d => d.estado),
+        datasets: [{
+            label: 'Cantidad',
+            data: estadoData.map(d => d.count),
+            backgroundColor: '#3b82f6'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Animar progress ring
+document.addEventListener('DOMContentLoaded', function() {
+    const progressRing = document.querySelector('.progress-ring-circle');
+    const progress = progressRing.getAttribute('data-progress');
+    const circumference = 2 * Math.PI * 35;
+    const offset = circumference - (progress / 100) * circumference;
+    
+    setTimeout(() => {
+        progressRing.style.strokeDashoffset = offset;
+    }, 500);
+});
+</script>
+{% endblock %}

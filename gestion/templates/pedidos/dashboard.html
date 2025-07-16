@@ -1,0 +1,339 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Pedidos - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        height: 100%;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    .progress-ring__circle {
+        stroke-dasharray: 251.2;
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset 0.35s;
+        stroke: #10b981;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f9fafb;
+    }
+    .badge-estado {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Dashboard de Pedidos</h1>
+            <p class="text-muted mb-0">Gestión integral de pedidos y órdenes de producción</p>
+        </div>
+        <div>
+            <a href="{% url 'gestion:pedido_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nuevo Pedido
+            </a>
+            <a href="{% url 'gestion:pedidos_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-list-ul me-2"></i>Ver Todos
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ pedidos_total }}</div>
+                        <div class="stat-label">Total Pedidos</div>
+                    </div>
+                    <i class="bi bi-clipboard-check text-primary" style="font-size: 3rem; opacity: 0.2;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ pedidos_mes }}</div>
+                        <div class="stat-label">Pedidos del Mes</div>
+                    </div>
+                    <i class="bi bi-calendar-month text-success" style="font-size: 3rem; opacity: 0.2;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ pedidos_en_produccion }}</div>
+                        <div class="stat-label">En Producción</div>
+                    </div>
+                    <i class="bi bi-gear-fill text-warning" style="font-size: 3rem; opacity: 0.2;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">${{ valor_mes|floatformat:0 }}</div>
+                        <div class="stat-label">Valor del Mes</div>
+                    </div>
+                    <i class="bi bi-currency-dollar text-info" style="font-size: 3rem; opacity: 0.2;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Pedidos por Estado -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Pedidos por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="pedidosEstadoChart" style="max-height: 300px;"></canvas>
+                    <div class="mt-3">
+                        {% for estado in pedidos_por_estado %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge badge-estado
+                                {% if estado.estado == 'confirmado' %}bg-primary
+                                {% elif estado.estado == 'en_produccion' %}bg-warning
+                                {% elif estado.estado == 'completado' %}bg-success
+                                {% elif estado.estado == 'cancelado' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ estado.estado|title }}
+                            </span>
+                            <div class="text-end">
+                                <strong>{{ estado.count }}</strong>
+                                <span class="text-muted small">(${{ estado.valor|floatformat:0 }})</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pedidos Urgentes -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pedidos Urgentes</h5>
+                    <span class="badge bg-danger">Próximos 7 días</span>
+                </div>
+                <div class="card-body">
+                    {% if pedidos_urgentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha Requerida</th>
+                                    <th>Estado</th>
+                                    <th>Valor</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pedido in pedidos_urgentes %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" class="text-decoration-none">
+                                            {{ pedido.numero_pedido }}
+                                        </a>
+                                    </td>
+                                    <td>{{ pedido.cliente.tercero.nombre }}</td>
+                                    <td>
+                                        <span class="text-danger">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            {{ pedido.fecha_requerida|date:"d/m/Y" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-estado
+                                            {% if pedido.estado == 'confirmado' %}bg-primary
+                                            {% elif pedido.estado == 'en_produccion' %}bg-warning{% endif %}">
+                                            {{ pedido.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>${{ pedido.total|floatformat:0 }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                Ver
+                                            </a>
+                                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=URGENTE: {{ pedido.numero_pedido }}" 
+                                               class="btn btn-sm btn-outline-danger" title="Crear tarea urgente">
+                                                <i class="bi bi-exclamation-circle"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                        <p class="mt-2 text-muted">No hay pedidos urgentes pendientes</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimos Pedidos -->
+    <div class="card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Últimos Pedidos</h5>
+            <a href="{% url 'gestion:pedidos_list' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Fecha Requerida</th>
+                            <th>Estado</th>
+                            <th>Prioridad</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in ultimos_pedidos %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" class="text-decoration-none">
+                                    {{ pedido.numero_pedido }}
+                                </a>
+                            </td>
+                            <td>{{ pedido.cliente.tercero.nombre }}</td>
+                            <td>{{ pedido.fecha_pedido|date:"d/m/Y" }}</td>
+                            <td>{{ pedido.fecha_requerida|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge badge-estado
+                                    {% if pedido.estado == 'borrador' %}bg-secondary
+                                    {% elif pedido.estado == 'confirmado' %}bg-primary
+                                    {% elif pedido.estado == 'en_produccion' %}bg-warning
+                                    {% elif pedido.estado == 'completado' %}bg-success
+                                    {% elif pedido.estado == 'cancelado' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                    {{ pedido.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge
+                                    {% if pedido.prioridad == 'urgente' %}bg-danger
+                                    {% elif pedido.prioridad == 'alta' %}bg-warning
+                                    {% elif pedido.prioridad == 'normal' %}bg-info
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ pedido.get_prioridad_display }}
+                                </span>
+                            </td>
+                            <td>${{ pedido.total|floatformat:0 }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if pedido.estado in 'borrador,confirmado' %}
+                                    <a href="{% url 'gestion:pedido_edit' pedido.id_pedido %}" 
+                                       class="btn btn-sm btn-outline-secondary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Seguimiento {{ pedido.numero_pedido }}" 
+                                       class="btn btn-sm btn-outline-success" title="Crear tarea">
+                                        <i class="bi bi-clipboard-check"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gráfico de pedidos por estado
+const ctx = document.getElementById('pedidosEstadoChart').getContext('2d');
+const pedidosEstadoChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            {% for estado in pedidos_por_estado %}'{{ estado.estado|title }}'{% if not forloop.last %},{% endif %}{% endfor %}
+        ],
+        datasets: [{
+            data: [
+                {% for estado in pedidos_por_estado %}{{ estado.count }}{% if not forloop.last %},{% endif %}{% endfor %}
+            ],
+            backgroundColor: [
+                '#6c757d', // borrador
+                '#0d6efd', // confirmado
+                '#ffc107', // en_produccion
+                '#198754', // completado
+                '#dc3545'  // cancelado
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

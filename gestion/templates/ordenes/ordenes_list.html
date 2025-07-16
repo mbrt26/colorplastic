@@ -1,0 +1,293 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Lista de Órdenes de Producción - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .table-container {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .badge-estado {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+    }
+    .badge-prioridad {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f9fafb;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .progress-cell {
+        min-width: 120px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Órdenes de Producción</h1>
+            <p class="text-muted mb-0">Gestión y seguimiento de órdenes de producción</p>
+        </div>
+        <div>
+            <a href="{% url 'gestion:calendario_produccion' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-calendar3 me-2"></i>Ver Calendario
+            </a>
+            <a href="{% url 'gestion:ordenes_dashboard' %}" class="btn btn-primary">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="busqueda" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Número orden, pedido, cliente...">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for value, label in estado_choices %}
+                        <option value="{{ value }}" {% if estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="prioridad" class="form-label">Prioridad</label>
+                    <select class="form-select" id="prioridad" name="prioridad">
+                        <option value="">Todas las prioridades</option>
+                        {% for value, label in prioridad_choices %}
+                        <option value="{{ value }}" {% if prioridad == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="supervisor" class="form-label">Supervisor</label>
+                    <select class="form-select" id="supervisor" name="supervisor">
+                        <option value="">Todos los supervisores</option>
+                        {% for sup in supervisores %}
+                        <option value="{{ sup.id }}" {% if supervisor == sup.id|stringformat:"s" %}selected{% endif %}>
+                            {{ sup.get_full_name|default:sup.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-1">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}">
+                </div>
+                
+                <div class="col-md-1">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}">
+                </div>
+                
+                <div class="col-md-1 d-flex align-items-end">
+                    <div>
+                        <a href="{% url 'gestion:ordenes_list' %}" class="btn btn-secondary" title="Limpiar filtros">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </a>
+                        <button type="submit" class="btn btn-primary" title="Buscar">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de órdenes -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Orden</th>
+                        <th>Pedido</th>
+                        <th>Cliente</th>
+                        <th>Fecha Programada</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th>Supervisor</th>
+                        <th class="progress-cell">Avance</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in page_obj %}
+                    <tr onclick="window.location='{% url 'gestion:orden_detail' orden.id_orden %}';" style="cursor: pointer;">
+                        <td>
+                            <a href="{% url 'gestion:orden_detail' orden.id_orden %}" 
+                               class="text-decoration-none fw-bold">
+                                {{ orden.numero_orden }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{% url 'gestion:pedido_detail' orden.pedido.id_pedido %}" 
+                               class="text-decoration-none">
+                                {{ orden.pedido.numero_pedido }}
+                            </a>
+                        </td>
+                        <td>
+                            <div>{{ orden.pedido.cliente.tercero.nombre }}</div>
+                            <small class="text-muted">{{ orden.pedido.cliente.tercero.nit }}</small>
+                        </td>
+                        <td>
+                            <div>{{ orden.fecha_programada_inicio|date:"d/m/Y" }}</div>
+                            <small class="text-muted">hasta {{ orden.fecha_programada_fin|date:"d/m/Y" }}</small>
+                        </td>
+                        <td>
+                            <span class="badge badge-estado
+                                {% if orden.estado == 'programada' %}bg-primary
+                                {% elif orden.estado == 'en_proceso' %}bg-warning text-dark
+                                {% elif orden.estado == 'pausada' %}bg-secondary
+                                {% elif orden.estado == 'completada' %}bg-success
+                                {% elif orden.estado == 'cancelada' %}bg-danger{% endif %}">
+                                {{ orden.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-prioridad
+                                {% if orden.prioridad == 'urgente' %}bg-danger
+                                {% elif orden.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif orden.prioridad == 'normal' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ orden.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if orden.supervisor_asignado %}
+                                {{ orden.supervisor_asignado.get_full_name|default:orden.supervisor_asignado.username }}
+                            {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td class="progress-cell">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar 
+                                    {% if orden.porcentaje_avance >= 100 %}bg-success
+                                    {% elif orden.porcentaje_avance >= 50 %}bg-primary
+                                    {% else %}bg-warning{% endif %}" 
+                                    role="progressbar" 
+                                    style="width: {{ orden.porcentaje_avance }}%">
+                                    {{ orden.porcentaje_avance|floatformat:0 }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'gestion:orden_detail' orden.id_orden %}" 
+                                   class="btn btn-sm btn-outline-primary btn-action" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'gestion:tarea_create' %}?modulo_origen=ordenes&orden_produccion_id={{ orden.id_orden }}" 
+                                   class="btn btn-sm btn-outline-info btn-action" title="Crear tarea">
+                                    <i class="bi bi-check2-square"></i>
+                                </a>
+                                {% if orden.estado == 'programada' %}
+                                <a href="{% url 'gestion:planificar_procesos' orden.id_orden %}" 
+                                   class="btn btn-sm btn-outline-success btn-action" title="Planificar procesos">
+                                    <i class="bi bi-calendar-plus"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-2 text-muted">No se encontraron órdenes con los filtros seleccionados</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-light">
+            <nav aria-label="Navegación de órdenes">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if supervisor %}&supervisor={{ supervisor }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if supervisor %}&supervisor={{ supervisor }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if supervisor %}&supervisor={{ supervisor }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            
+            <div class="text-center text-muted mt-2">
+                Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} órdenes
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-submit form on select change
+document.querySelectorAll('#estado, #prioridad, #supervisor').forEach(select => {
+    select.addEventListener('change', () => {
+        document.getElementById('filterForm').submit();
+    });
+});
+</script>
+{% endblock %}

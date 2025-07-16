@@ -1,0 +1,487 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}{% if pqrs %}Editar PQRS {{ pqrs.numero_pqrs }}{% else %}Nueva PQRS{% endif %} - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .section-title {
+        color: #2E8B57;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+    .form-floating > .form-control {
+        height: calc(3.5rem + 2px);
+    }
+    .form-floating > textarea.form-control {
+        height: 120px;
+    }
+    .cliente-info {
+        background: #f8f9fa;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+    .preview-section {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .character-count {
+        font-size: 0.875rem;
+        color: #6c757d;
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+    .character-count.warning {
+        color: #f59e0b;
+    }
+    .character-count.danger {
+        color: #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">{% if pqrs %}Editar PQRS {{ pqrs.numero_pqrs }}{% else %}Nueva PQRS{% endif %}</h1>
+            <p class="text-muted mb-0">{% if pqrs %}Modificar información de la PQRS{% else %}Registrar nueva Petición, Queja, Reclamo o Sugerencia{% endif %}</p>
+        </div>
+        <div>
+            {% if pqrs %}
+            <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-2"></i>Volver a Detalle
+            </a>
+            {% endif %}
+            <a href="{% url 'gestion:pqrs_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-list-ul me-2"></i>Lista PQRS
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="pqrsForm">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Información básica -->
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-info-circle me-2"></i>Información Básica
+                    </h5>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="tipo" name="tipo" required>
+                                    <option value="">Seleccionar tipo</option>
+                                    {% for value, label in tipo_choices %}
+                                    <option value="{{ value }}" {% if pqrs.tipo == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <label for="tipo" class="required-field">Tipo de PQRS</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="prioridad" name="prioridad" required>
+                                    {% for value, label in prioridad_choices %}
+                                    <option value="{{ value }}" {% if pqrs.prioridad == value or value == 'media' and not pqrs %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <label for="prioridad" class="required-field">Prioridad</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="asunto" name="asunto" 
+                                   value="{% if pqrs %}{{ pqrs.asunto }}{% endif %}" 
+                                   maxlength="200" required>
+                            <label for="asunto" class="required-field">Asunto</label>
+                        </div>
+                        <div class="character-count">
+                            <span id="asunto-count">0</span>/200 caracteres
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-floating">
+                            <textarea class="form-control" id="descripcion" name="descripcion" 
+                                      style="height: 120px;" required>{% if pqrs %}{{ pqrs.descripcion }}{% endif %}</textarea>
+                            <label for="descripcion" class="required-field">Descripción detallada</label>
+                        </div>
+                        <div class="character-count">
+                            <span id="descripcion-count">0</span> caracteres
+                        </div>
+                    </div>
+
+                    {% if pqrs %}
+                    <div class="mb-3">
+                        <div class="form-floating">
+                            <select class="form-select" id="estado" name="estado" required>
+                                {% for value, label in estado_choices %}
+                                <option value="{{ value }}" {% if pqrs.estado == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="estado" class="required-field">Estado</label>
+                        </div>
+                    </div>
+
+                    {% if pqrs.estado == 'solucionada' or pqrs.estado == 'cerrada' %}
+                    <div class="mb-3">
+                        <div class="form-floating">
+                            <textarea class="form-control" id="solucion" name="solucion" 
+                                      style="height: 100px;">{% if pqrs %}{{ pqrs.solucion }}{% endif %}</textarea>
+                            <label for="solucion">Solución implementada</label>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <!-- Información del contacto -->
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-person me-2"></i>Información del Contacto
+                    </h5>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="nombre_contacto" name="nombre_contacto" 
+                                       value="{% if pqrs %}{{ pqrs.nombre_contacto }}{% endif %}" 
+                                       maxlength="200" required>
+                                <label for="nombre_contacto" class="required-field">Nombre completo</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="email" class="form-control" id="email_contacto" name="email_contacto" 
+                                       value="{% if pqrs %}{{ pqrs.email_contacto }}{% endif %}" required>
+                                <label for="email_contacto" class="required-field">Email</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="tel" class="form-control" id="telefono_contacto" name="telefono_contacto" 
+                                       value="{% if pqrs %}{{ pqrs.telefono_contacto }}{% endif %}" 
+                                       maxlength="50">
+                                <label for="telefono_contacto">Teléfono</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="canal_recepcion" name="canal_recepcion" required>
+                                    <option value="">Seleccionar canal</option>
+                                    {% for value, label in canal_choices %}
+                                    <option value="{{ value }}" {% if pqrs.canal_recepcion == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <label for="canal_recepcion" class="required-field">Canal de recepción</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entidades relacionadas -->
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-link-45deg me-2"></i>Entidades Relacionadas
+                    </h5>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="cliente_id" name="cliente_id">
+                                    <option value="">Sin cliente relacionado</option>
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.id_cliente }}" 
+                                            {% if pqrs.cliente.id_cliente == cliente.id_cliente or cliente_id == cliente.id_cliente|stringformat:"s" %}selected{% endif %}>
+                                        {{ cliente.tercero.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="cliente_id">Cliente</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="usuario_asignado" name="usuario_asignado" required>
+                                    {% for usuario in usuarios %}
+                                    <option value="{{ usuario.id }}" 
+                                            {% if pqrs.usuario_asignado.id == usuario.id or not pqrs and usuario == request.user %}selected{% endif %}>
+                                        {{ usuario.get_full_name|default:usuario.username }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="usuario_asignado" class="required-field">Asignado a</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if pqrs %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="pedido_relacionado" name="pedido_relacionado">
+                                    <option value="">Sin pedido relacionado</option>
+                                    {% for pedido in pedidos %}
+                                    <option value="{{ pedido.id_pedido }}" 
+                                            {% if pqrs.pedido_relacionado.id_pedido == pedido.id_pedido %}selected{% endif %}>
+                                        {{ pedido.numero_pedido }} - {{ pedido.cliente.tercero.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="pedido_relacionado">Pedido relacionado</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="oportunidad_relacionada" name="oportunidad_relacionada">
+                                    <option value="">Sin oportunidad relacionada</option>
+                                    {% for oportunidad in oportunidades %}
+                                    <option value="{{ oportunidad.id_oportunidad }}" 
+                                            {% if pqrs.oportunidad_relacionada.id_oportunidad == oportunidad.id_oportunidad %}selected{% endif %}>
+                                        {{ oportunidad.nombre }} - {{ oportunidad.cliente.tercero.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="oportunidad_relacionada">Oportunidad relacionada</label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% if pqrs %}{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}{% else %}{% url 'gestion:pqrs_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>{% if pqrs %}Actualizar{% else %}Crear{% endif %} PQRS
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <!-- Información del cliente seleccionado -->
+                <div class="form-section">
+                    <h6 class="mb-3">
+                        <i class="bi bi-building me-2"></i>Información del Cliente
+                    </h6>
+                    <div id="cliente-info" class="cliente-info" style="display: none;">
+                        <div class="mb-2">
+                            <strong id="cliente-nombre">-</strong>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Email:</small><br>
+                            <span id="cliente-email">-</span>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Teléfono:</small><br>
+                            <span id="cliente-telefono">-</span>
+                        </div>
+                        <div>
+                            <small class="text-muted">Tipo:</small><br>
+                            <span id="cliente-tipo">-</span>
+                        </div>
+                    </div>
+                    <div id="cliente-placeholder" class="text-muted text-center py-3">
+                        <i class="bi bi-building" style="font-size: 2rem;"></i>
+                        <p class="mt-2">Seleccione un cliente para ver su información</p>
+                    </div>
+                </div>
+
+                <!-- Guías de ayuda -->
+                <div class="form-section">
+                    <h6 class="mb-3">
+                        <i class="bi bi-question-circle me-2"></i>Guía de Tipos
+                    </h6>
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong class="text-info">Petición:</strong> Solicitud de información o servicio
+                        </div>
+                        <div class="mb-2">
+                            <strong class="text-warning">Queja:</strong> Expresión de inconformidad
+                        </div>
+                        <div class="mb-2">
+                            <strong class="text-danger">Reclamo:</strong> Exigencia de derechos o compensación
+                        </div>
+                        <div class="mb-2">
+                            <strong class="text-secondary">Sugerencia:</strong> Propuesta de mejora
+                        </div>
+                        <div>
+                            <strong class="text-success">Felicitación:</strong> Reconocimiento positivo
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de prioridades -->
+                <div class="form-section">
+                    <h6 class="mb-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Niveles de Prioridad
+                    </h6>
+                    <div class="small">
+                        <div class="mb-2">
+                            <span class="badge bg-secondary">Baja</span> 
+                            <span class="ms-2">Tiempo respuesta: 5 días</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-info">Media</span> 
+                            <span class="ms-2">Tiempo respuesta: 3 días</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-warning text-dark">Alta</span> 
+                            <span class="ms-2">Tiempo respuesta: 1 día</span>
+                        </div>
+                        <div>
+                            <span class="badge bg-danger">Crítica</span> 
+                            <span class="ms-2">Tiempo respuesta: 4 horas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Información de clientes (datos del backend)
+const clientesData = {
+    {% for cliente in clientes %}
+    "{{ cliente.id_cliente }}": {
+        "nombre": "{{ cliente.tercero.nombre }}",
+        "email": "{{ cliente.tercero.email }}",
+        "telefono": "{{ cliente.tercero.telefono }}",
+        "tipo": "{{ cliente.tercero.get_tipo_display }}"
+    },
+    {% endfor %}
+};
+
+// Contador de caracteres
+function setupCharacterCounter(inputId, counterId, maxLength) {
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(counterId);
+    
+    function updateCounter() {
+        const length = input.value.length;
+        counter.textContent = length;
+        
+        if (maxLength) {
+            if (length > maxLength * 0.9) {
+                counter.parentElement.classList.add('warning');
+            } else {
+                counter.parentElement.classList.remove('warning');
+            }
+            
+            if (length > maxLength * 0.95) {
+                counter.parentElement.classList.add('danger');
+            } else {
+                counter.parentElement.classList.remove('danger');
+            }
+        }
+    }
+    
+    input.addEventListener('input', updateCounter);
+    updateCounter();
+}
+
+// Mostrar información del cliente
+function showClientInfo(clienteId) {
+    const clienteInfo = document.getElementById('cliente-info');
+    const clientePlaceholder = document.getElementById('cliente-placeholder');
+    
+    if (clienteId && clientesData[clienteId]) {
+        const cliente = clientesData[clienteId];
+        
+        document.getElementById('cliente-nombre').textContent = cliente.nombre;
+        document.getElementById('cliente-email').textContent = cliente.email || '-';
+        document.getElementById('cliente-telefono').textContent = cliente.telefono || '-';
+        document.getElementById('cliente-tipo').textContent = cliente.tipo || '-';
+        
+        clienteInfo.style.display = 'block';
+        clientePlaceholder.style.display = 'none';
+    } else {
+        clienteInfo.style.display = 'none';
+        clientePlaceholder.style.display = 'block';
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    // Contadores de caracteres
+    setupCharacterCounter('asunto', 'asunto-count', 200);
+    setupCharacterCounter('descripcion', 'descripcion-count');
+    
+    // Cliente seleccionado
+    const clienteSelect = document.getElementById('cliente_id');
+    clienteSelect.addEventListener('change', function() {
+        showClientInfo(this.value);
+    });
+    
+    // Mostrar cliente inicial si existe
+    showClientInfo(clienteSelect.value);
+    
+    // Autocompletar email y teléfono del cliente
+    clienteSelect.addEventListener('change', function() {
+        const clienteId = this.value;
+        if (clienteId && clientesData[clienteId]) {
+            const cliente = clientesData[clienteId];
+            const emailInput = document.getElementById('email_contacto');
+            const telefonoInput = document.getElementById('telefono_contacto');
+            
+            if (!emailInput.value && cliente.email) {
+                emailInput.value = cliente.email;
+            }
+            if (!telefonoInput.value && cliente.telefono) {
+                telefonoInput.value = cliente.telefono;
+            }
+        }
+    });
+    
+    // Validación del formulario
+    const form = document.getElementById('pqrsForm');
+    form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor, complete todos los campos requeridos.');
+        }
+    });
+});
+</script>
+{% endblock %}

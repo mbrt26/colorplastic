@@ -28,6 +28,8 @@ def despachos(request):
             numero_remision = request.POST.get('numero_remision')
             fecha_despacho = request.POST.get('fecha_despacho') or None
             direccion = request.POST.get('direccion_entrega')
+            orden_compra = request.POST.get('orden_compra', '')
+            archivo_adjunto = request.FILES.get('archivo_adjunto')
             observaciones = request.POST.get('observaciones', '')
             tercero_id = request.POST.get('tercero')
 
@@ -44,6 +46,8 @@ def despachos(request):
                     numero_remision=numero_remision,
                     fecha_despacho=fecha_despacho,
                     direccion_entrega=direccion,
+                    orden_compra=orden_compra,
+                    archivo_adjunto=archivo_adjunto,
                     observaciones=observaciones,
                     tercero_id=tercero_id,
                     usuario_creacion=request.user,
@@ -185,6 +189,8 @@ def editar_despacho(request, id):
             numero_remision = request.POST.get('numero_remision')
             fecha_despacho = request.POST.get('fecha_despacho') or None
             direccion = request.POST.get('direccion_entrega')
+            orden_compra = request.POST.get('orden_compra', '')
+            archivo_adjunto = request.FILES.get('archivo_adjunto')
             observaciones = request.POST.get('observaciones', '')
             tercero_id = request.POST.get('tercero')
             estado_nuevo = request.POST.get('estado')
@@ -219,6 +225,9 @@ def editar_despacho(request, id):
             despacho.numero_remision = numero_remision
             despacho.fecha_despacho = fecha_despacho
             despacho.direccion_entrega = direccion
+            despacho.orden_compra = orden_compra
+            if archivo_adjunto:
+                despacho.archivo_adjunto = archivo_adjunto
             despacho.observaciones = observaciones
             despacho.tercero_id = tercero_id
             if estado_nuevo:

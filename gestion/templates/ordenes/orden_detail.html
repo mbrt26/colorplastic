@@ -1,0 +1,488 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Orden {{ orden.numero_orden }} - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .detail-header {
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .detail-row {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    .detail-label {
+        font-weight: 600;
+        color: #6b7280;
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+    }
+    .material-card {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .proceso-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    .proceso-timeline::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e5e7eb;
+    }
+    .proceso-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+    .proceso-item::before {
+        content: '';
+        position: absolute;
+        left: -26px;
+        top: 5px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #d1d5db;
+    }
+    .proceso-item.completado::before {
+        background: #10b981;
+        border-color: #10b981;
+    }
+    .proceso-item.en_proceso::before {
+        background: #f59e0b;
+        border-color: #f59e0b;
+    }
+    .proceso-item.programado::before {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="{% url 'gestion:ordenes_dashboard' %}">Órdenes</a></li>
+                        <li class="breadcrumb-item active">{{ orden.numero_orden }}</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0 text-gray-800">{{ orden.numero_orden }}</h1>
+                <p class="text-muted mb-0">Creada el {{ orden.fecha_creacion|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div>
+                <a href="{% url 'gestion:tarea_create' %}?modulo_origen=ordenes&orden_produccion_id={{ orden.id_orden }}" 
+                   class="btn btn-outline-info">
+                    <i class="bi bi-check2-square me-2"></i>Nueva Tarea
+                </a>
+                {% if orden.estado == 'programada' %}
+                <a href="{% url 'gestion:planificar_procesos' orden.id_orden %}" class="btn btn-success">
+                    <i class="bi bi-calendar-plus me-2"></i>Planificar Procesos
+                </a>
+                {% endif %}
+                <a href="{% url 'gestion:ordenes_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Volver a Lista
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información principal -->
+        <div class="col-lg-8">
+            <!-- Estado y Resumen -->
+            <div class="detail-card">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="status-badge 
+                                {% if orden.estado == 'completada' %}bg-success bg-opacity-10 text-success
+                                {% elif orden.estado == 'en_proceso' %}bg-warning bg-opacity-10 text-warning
+                                {% elif orden.estado == 'programada' %}bg-primary bg-opacity-10 text-primary
+                                {% elif orden.estado == 'pausada' %}bg-secondary bg-opacity-10 text-secondary
+                                {% else %}bg-danger bg-opacity-10 text-danger{% endif %}">
+                                <i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>
+                                {{ orden.get_estado_display }}
+                            </div>
+                            
+                            <!-- Cambiar estado -->
+                            {% if orden.estado != 'completada' and orden.estado != 'cancelada' %}
+                            <div class="mt-3">
+                                <form method="post" action="{% url 'gestion:cambiar_estado_orden' orden.id_orden %}" class="d-inline">
+                                    {% csrf_token %}
+                                    {% if orden.estado == 'programada' %}
+                                        <input type="hidden" name="estado" value="en_proceso">
+                                        <button type="submit" class="btn btn-sm btn-warning">Iniciar Producción</button>
+                                    {% elif orden.estado == 'en_proceso' %}
+                                        <input type="hidden" name="estado" value="pausada">
+                                        <button type="submit" class="btn btn-sm btn-secondary">Pausar</button>
+                                        <input type="hidden" name="estado" value="completada">
+                                        <button type="submit" class="btn btn-sm btn-success ms-1">Completar</button>
+                                    {% elif orden.estado == 'pausada' %}
+                                        <input type="hidden" name="estado" value="en_proceso">
+                                        <button type="submit" class="btn btn-sm btn-warning">Reanudar</button>
+                                    {% endif %}
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-muted mb-1">Prioridad</h5>
+                            <span class="badge 
+                                {% if orden.prioridad == 'urgente' %}bg-danger
+                                {% elif orden.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif orden.prioridad == 'normal' %}bg-info
+                                {% else %}bg-secondary{% endif %} fs-6">
+                                {{ orden.get_prioridad_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h5 class="text-muted mb-1">Avance</h5>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ orden.porcentaje_avance }}%">
+                                    {{ orden.porcentaje_avance|floatformat:0 }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información General -->
+            <div class="detail-card">
+                <h5 class="detail-header">Información General</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="detail-row">
+                            <span class="detail-label">Pedido:</span>
+                            <a href="{% url 'gestion:pedido_detail' orden.pedido.id_pedido %}" class="float-end">
+                                {{ orden.pedido.numero_pedido }}
+                            </a>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Cliente:</span>
+                            <span class="float-end">{{ orden.pedido.cliente.tercero.nombre }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Supervisor:</span>
+                            <span class="float-end">
+                                {% if orden.supervisor_asignado %}
+                                    {{ orden.supervisor_asignado.get_full_name|default:orden.supervisor_asignado.username }}
+                                {% else %}
+                                    <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-row">
+                            <span class="detail-label">Fecha Programada:</span>
+                            <span class="float-end">
+                                {{ orden.fecha_programada_inicio|date:"d/m/Y" }} - {{ orden.fecha_programada_fin|date:"d/m/Y" }}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Fecha Real Inicio:</span>
+                            <span class="float-end">
+                                {% if orden.fecha_real_inicio %}
+                                    {{ orden.fecha_real_inicio|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Fecha Real Fin:</span>
+                            <span class="float-end">
+                                {% if orden.fecha_real_fin %}
+                                    {{ orden.fecha_real_fin|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if orden.observaciones %}
+                <div class="mt-3">
+                    <span class="detail-label">Observaciones:</span>
+                    <p class="mt-1 mb-0">{{ orden.observaciones }}</p>
+                </div>
+                {% endif %}
+                
+                {% if orden.instrucciones_especiales %}
+                <div class="mt-3">
+                    <span class="detail-label">Instrucciones Especiales:</span>
+                    <p class="mt-1 mb-0">{{ orden.instrucciones_especiales }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Detalles de Producción -->
+            <div class="detail-card">
+                <h5 class="detail-header">Materiales a Producir</h5>
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-1">Total Planificado</h6>
+                        <h3 class="mb-3">{{ total_planificado|floatformat:0 }} KG</h3>
+                    </div>
+                </div>
+                
+                {% for detalle in detalles %}
+                <div class="material-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h6 class="mb-1">{{ detalle.material.nombre }}</h6>
+                            <small class="text-muted">{{ detalle.material.tipo }} - {{ detalle.material.descripcion|default:"" }}</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted">Cantidad</div>
+                            <strong>{{ detalle.cantidad_producir|floatformat:0 }} {{ detalle.unidad_medida }}</strong>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted">Producido</div>
+                            <strong>{{ detalle.cantidad_producida|floatformat:0 }} {{ detalle.unidad_medida }}</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- Secuencia de procesos -->
+                    {% if detalle.secuencia_procesos %}
+                    <div class="mt-3">
+                        <small class="text-muted">Secuencia de procesos:</small>
+                        <div class="mt-1">
+                            {% for proceso in detalle.secuencia_procesos %}
+                            <span class="badge bg-secondary me-1">{{ proceso|title }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Estado del detalle -->
+                    <div class="mt-2">
+                        <span class="badge 
+                            {% if detalle.estado == 'completado' %}bg-success
+                            {% elif detalle.estado == 'en_proceso' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ detalle.get_estado_display }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Planificación de Procesos -->
+        <div class="col-lg-4">
+            <!-- Tareas Relacionadas -->
+            <div class="detail-card mb-3">
+                <h5 class="detail-header">Tareas Relacionadas</h5>
+                
+                {% if tareas %}
+                <div class="list-group list-group-flush">
+                    {% for tarea in tareas|slice:":5" %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <a href="{% url 'gestion:tarea_detail' tarea.id_tarea %}" 
+                                   class="text-decoration-none fw-semibold text-dark">
+                                    {{ tarea.titulo|truncatewords:4 }}
+                                </a>
+                                <div class="small text-muted">
+                                    <i class="bi bi-person me-1"></i>{{ tarea.asignado_a.get_full_name|default:tarea.asignado_a.username }}
+                                    | <i class="bi bi-calendar me-1"></i>{{ tarea.fecha_vencimiento|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                            <span class="badge 
+                                {% if tarea.estado == 'completada' %}bg-success
+                                {% elif tarea.estado == 'en_progreso' %}bg-primary
+                                {% elif tarea.estado == 'vencida' %}bg-danger
+                                {% elif tarea.prioridad == 'urgente' %}bg-warning text-dark
+                                {% else %}bg-secondary{% endif %}">
+                                {{ tarea.get_estado_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if tareas.count > 5 %}
+                <p class="small text-muted text-center mt-2 mb-0">
+                    Mostrando 5 de {{ tareas.count }} tareas
+                </p>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-check2-square" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">No hay tareas registradas</p>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{% url 'gestion:tarea_create' %}?modulo_origen=ordenes&orden_produccion_id={{ orden.id_orden }}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Nueva Tarea
+                    </a>
+                    <a href="{% url 'gestion:tarea_create' %}?modulo_origen=ordenes&orden_produccion_id={{ orden.id_orden }}&titulo=Control%20de%20Calidad%20-%20{{ orden.numero_orden }}" 
+                       class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-clipboard-check me-1"></i>Tarea Control Calidad
+                    </a>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <h5 class="detail-header">Planificación de Procesos</h5>
+                
+                {% if planificaciones_por_proceso %}
+                    {% for tipo_proceso, planificaciones in planificaciones_por_proceso.items %}
+                    <h6 class="mt-3 mb-2">{{ tipo_proceso }}</h6>
+                    <div class="proceso-timeline">
+                        {% for plan in planificaciones %}
+                        <div class="proceso-item {{ plan.estado }}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ plan.orden_trabajo }}</strong>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-cpu me-1"></i>{{ plan.maquina.nombre }}
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-person me-1"></i>{{ plan.operario.get_full_name|default:plan.operario.username }}
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-calendar me-1"></i>{{ plan.fecha_programada|date:"d/m/Y H:i" }}
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge 
+                                        {% if plan.estado == 'completado' %}bg-success
+                                        {% elif plan.estado == 'en_proceso' %}bg-warning text-dark
+                                        {% elif plan.estado == 'pausado' %}bg-secondary
+                                        {% else %}bg-primary{% endif %} mb-2">
+                                        {{ plan.get_estado_display }}
+                                    </span>
+                                    
+                                    {% if plan.estado == 'programado' or plan.estado == 'en_proceso' %}
+                                    <div>
+                                        <form method="post" action="{% url 'gestion:actualizar_progreso_proceso' plan.id_planificacion %}" class="d-inline">
+                                            {% csrf_token %}
+                                            {% if plan.estado == 'programado' %}
+                                                <input type="hidden" name="accion" value="iniciar">
+                                                <button type="submit" class="btn btn-sm btn-primary" title="Iniciar proceso">
+                                                    <i class="bi bi-play-fill"></i>
+                                                </button>
+                                            {% elif plan.estado == 'en_proceso' %}
+                                                <input type="hidden" name="accion" value="pausar">
+                                                <button type="submit" class="btn btn-sm btn-secondary" title="Pausar">
+                                                    <i class="bi bi-pause-fill"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-success" 
+                                                        onclick="completarProceso('{{ plan.id_planificacion }}')" 
+                                                        title="Completar">
+                                                    <i class="bi bi-check"></i>
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if plan.cantidad_procesada %}
+                            <div class="mt-2">
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Procesado: {{ plan.cantidad_procesada|floatformat:0 }} KG
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
+                        <p class="mt-2">No hay procesos planificados</p>
+                        {% if orden.estado == 'programada' %}
+                        <a href="{% url 'gestion:planificar_procesos' orden.id_orden %}" class="btn btn-primary btn-sm">
+                            Planificar Ahora
+                        </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para completar proceso -->
+<div class="modal fade" id="completarProcesoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="completarProcesoForm">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="completar">
+                <div class="modal-header">
+                    <h5 class="modal-title">Completar Proceso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="cantidad_procesada" class="form-label">Cantidad Procesada (KG)</label>
+                        <input type="number" class="form-control" id="cantidad_procesada" name="cantidad_procesada" 
+                               step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Completar Proceso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function completarProceso(planificacionId) {
+    const modal = new bootstrap.Modal(document.getElementById('completarProcesoModal'));
+    const form = document.getElementById('completarProcesoForm');
+    form.action = `/gestion/ordenes/proceso/${planificacionId}/actualizar/`;
+    modal.show();
+}
+</script>
+{% endblock %}

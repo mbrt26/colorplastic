@@ -42,8 +42,13 @@
                                 <label for="turno" class="form-label">Turno</label>
                                 <select class="form-select" id="turno" name="turno" required>
                                     <option value="">Seleccionar turno</option>
-                                    <option value="Día" {% if produccion.turno == 'Día' %}selected{% endif %}>Día</option>
-                                    <option value="Noche" {% if produccion.turno == 'Noche' %}selected{% endif %}>Noche</option>
+                                    <option value="6am-2pm" {% if produccion.turno == '6am-2pm' %}selected{% endif %}>6am-2pm</option>
+                                    <option value="6am-12pm" {% if produccion.turno == '6am-12pm' %}selected{% endif %}>6am-12pm</option>
+                                    <option value="12pm-6pm" {% if produccion.turno == '12pm-6pm' %}selected{% endif %}>12pm-6pm</option>
+                                    <option value="2pm-10pm" {% if produccion.turno == '2pm-10pm' %}selected{% endif %}>2pm-10pm</option>
+                                    <option value="10pm-6am" {% if produccion.turno == '10pm-6am' %}selected{% endif %}>10pm-6am</option>
+                                    <option value="6am-6pm" {% if produccion.turno == '6am-6pm' %}selected{% endif %}>6am-6pm</option>
+                                    <option value="6pm-6am" {% if produccion.turno == '6pm-6am' %}selected{% endif %}>6pm-6am</option>
                                 </select>
                                 <div class="invalid-feedback">
                                     El turno es requerido.

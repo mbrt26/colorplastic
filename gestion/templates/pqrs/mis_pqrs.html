@@ -1,0 +1,431 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Mis PQRS - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        text-align: center;
+        height: 100%;
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .stats-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+    .stats-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 1.5rem;
+    }
+    .pqrs-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: transform 0.2s;
+    }
+    .pqrs-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .pqrs-header {
+        display: flex;
+        justify-content: between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+    .pqrs-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .pqrs-subtitle {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    .pqrs-meta {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+    .pqrs-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .pqrs-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    .filter-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .vencida {
+        border-left: 4px solid #dc2626;
+        background-color: #fef2f2;
+    }
+    .critica {
+        border-left: 4px solid #f59e0b;
+        background-color: #fef3c7;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Mis PQRS</h1>
+            <p class="text-muted mb-0">PQRS asignadas a {{ request.user.get_full_name|default:request.user.username }}</p>
+        </div>
+        <div>
+            <a href="{% url 'gestion:pqrs_dashboard' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+            <a href="{% url 'gestion:pqrs_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-list-ul me-2"></i>Todas las PQRS
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="stats-card">
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-clipboard-data"></i>
+                </div>
+                <div class="stats-value text-primary">{{ total_asignadas }}</div>
+                <div class="stats-label">Total Asignadas</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="stats-card">
+                <div class="stats-icon bg-secondary bg-opacity-10 text-secondary">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <div class="stats-value text-secondary">{{ pendientes }}</div>
+                <div class="stats-label">Pendientes</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="stats-card">
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="stats-value text-warning">{{ en_proceso }}</div>
+                <div class="stats-label">En Proceso</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="stats-card">
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stats-value text-success">{{ solucionadas }}</div>
+                <div class="stats-label">Solucionadas</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="stats-card">
+                <div class="stats-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="stats-value text-danger">{{ vencidas }}</div>
+                <div class="stats-label">Vencidas</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="stats-card">
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-percent"></i>
+                </div>
+                <div class="stats-value text-info">
+                    {% if total_asignadas > 0 %}
+                        {{ solucionadas|floatformat:0 }}/{{ total_asignadas }}
+                    {% else %}
+                        0/0
+                    {% endif %}
+                </div>
+                <div class="stats-label">Resueltas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="estado" class="form-label">Filtrar por Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for value, label in estado_choices %}
+                        <option value="{{ value }}" {% if estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-funnel me-1"></i>Filtrar
+                        </button>
+                        <a href="{% url 'gestion:mis_pqrs' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'gestion:mis_pqrs' %}?estado=recibida" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-inbox me-1"></i>Pendientes
+                        </a>
+                        <a href="{% url 'gestion:mis_pqrs' %}?estado=en_proceso" class="btn btn-outline-warning btn-sm">
+                            <i class="bi bi-hourglass-split me-1"></i>En Proceso
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de PQRS -->
+    <div class="row">
+        <div class="col-12">
+            {% if page_obj %}
+                {% for pqrs in page_obj %}
+                <div class="pqrs-card {% if pqrs.esta_vencida %}vencida{% elif pqrs.prioridad == 'critica' %}critica{% endif %}">
+                    <div class="pqrs-header">
+                        <div class="flex-grow-1">
+                            <div class="pqrs-title">
+                                <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" class="text-decoration-none">
+                                    {{ pqrs.numero_pqrs }}
+                                </a>
+                            </div>
+                            <div class="pqrs-subtitle">{{ pqrs.asunto }}</div>
+                            <div class="pqrs-meta">
+                                <i class="bi bi-person me-1"></i>{{ pqrs.nombre_contacto }}
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-envelope me-1"></i>{{ pqrs.email_contacto }}
+                                {% if pqrs.cliente %}
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-building me-1"></i>{{ pqrs.cliente.tercero.nombre }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">
+                                Creada: {{ pqrs.fecha_creacion|date:"d/m/Y" }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="pqrs-badges">
+                        <span class="badge 
+                            {% if pqrs.tipo == 'reclamo' %}bg-danger
+                            {% elif pqrs.tipo == 'queja' %}bg-warning text-dark
+                            {% elif pqrs.tipo == 'peticion' %}bg-info
+                            {% elif pqrs.tipo == 'sugerencia' %}bg-secondary
+                            {% else %}bg-success{% endif %}">
+                            {{ pqrs.get_tipo_display }}
+                        </span>
+                        <span class="badge 
+                            {% if pqrs.estado == 'recibida' %}bg-secondary
+                            {% elif pqrs.estado == 'en_proceso' %}bg-primary
+                            {% elif pqrs.estado == 'escalada' %}bg-warning text-dark
+                            {% elif pqrs.estado == 'solucionada' %}bg-success
+                            {% elif pqrs.estado == 'cerrada' %}bg-dark
+                            {% else %}bg-danger{% endif %}">
+                            {{ pqrs.get_estado_display }}
+                        </span>
+                        <span class="badge 
+                            {% if pqrs.prioridad == 'critica' %}bg-danger
+                            {% elif pqrs.prioridad == 'alta' %}bg-warning text-dark
+                            {% elif pqrs.prioridad == 'media' %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                            {{ pqrs.get_prioridad_display }}
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-clock me-1"></i>
+                            Vence: {{ pqrs.fecha_vencimiento|date:"d/m H:i" }}
+                        </span>
+                        {% if pqrs.esta_vencida %}
+                        <span class="badge bg-danger">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Vencida
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="pqrs-actions">
+                        <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Ver
+                        </a>
+                        <a href="{% url 'gestion:pqrs_edit' pqrs.id_pqrs %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil me-1"></i>Editar
+                        </a>
+                        <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&titulo=Gestionar%20PQRS:%20{{ pqrs.asunto|urlencode }}" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-check2-square me-1"></i>Tarea
+                        </a>
+                        {% if pqrs.estado == 'recibida' %}
+                        <button class="btn btn-sm btn-primary" onclick="cambiarEstado('{{ pqrs.id_pqrs }}', 'en_proceso')">
+                            <i class="bi bi-play-circle me-1"></i>Iniciar
+                        </button>
+                        {% elif pqrs.estado == 'en_proceso' %}
+                        <button class="btn btn-sm btn-success" onclick="cambiarEstado('{{ pqrs.id_pqrs }}', 'solucionada')">
+                            <i class="bi bi-check-circle me-1"></i>Solucionar
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Paginación -->
+                {% if page_obj.has_other_pages %}
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Navegación de PQRS">
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if estado %}&estado={{ estado }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if estado %}&estado={{ estado }}{% endif %}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if estado %}&estado={{ estado }}{% endif %}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+
+                <!-- Información de paginación -->
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} PQRS
+                    </small>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h4>No tienes PQRS asignadas</h4>
+                    <p class="text-muted">
+                        {% if estado %}
+                            No se encontraron PQRS con el estado "{{ estado|title }}"
+                        {% else %}
+                            Aún no tienes PQRS asignadas para gestionar
+                        {% endif %}
+                    </p>
+                    <div class="mt-3">
+                        {% if estado %}
+                        <a href="{% url 'gestion:mis_pqrs' %}" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Ver Todas
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'gestion:pqrs_dashboard' %}" class="btn btn-primary">
+                            <i class="bi bi-speedometer2 me-2"></i>Dashboard PQRS
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-submit form when filters change
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('filterForm');
+    const estadoSelect = document.getElementById('estado');
+    
+    estadoSelect.addEventListener('change', function() {
+        form.submit();
+    });
+});
+
+// Función para cambiar estado rápidamente
+function cambiarEstado(pqrsId, nuevoEstado) {
+    if (confirm('¿Está seguro que desea cambiar el estado de esta PQRS?')) {
+        fetch(`/gestion/pqrs/${pqrsId}/cambiar-estado/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: `estado=${nuevoEstado}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al cambiar el estado: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cambiar el estado');
+        });
+    }
+}
+</script>
+{% endblock %}

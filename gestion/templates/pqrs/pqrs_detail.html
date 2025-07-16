@@ -1,0 +1,409 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}PQRS {{ pqrs.numero_pqrs }} - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pqrs-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid #007bff;
+    }
+    .info-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .status-badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: 500;
+    }
+    .priority-badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 3rem;
+        margin-bottom: 1.5rem;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 0.75rem;
+        top: 0;
+        bottom: -1.5rem;
+        width: 2px;
+        background: #dee2e6;
+    }
+    .timeline-item:last-child::before {
+        display: none;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 0.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        background: #007bff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.75rem;
+    }
+    .timeline-content {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        border-left: 3px solid #007bff;
+    }
+    .vencida {
+        border-left-color: #dc2626 !important;
+    }
+    .critica {
+        border-left-color: #f59e0b !important;
+    }
+    .action-buttons {
+        position: sticky;
+        top: 20px;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Header de la PQRS -->
+            <div class="pqrs-header {% if pqrs.esta_vencida %}vencida{% elif pqrs.prioridad == 'critica' %}critica{% endif %}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="h3 mb-2">{{ pqrs.numero_pqrs }}</h1>
+                        <h2 class="h5 text-muted mb-3">{{ pqrs.asunto }}</h2>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge status-badge
+                                {% if pqrs.tipo == 'reclamo' %}bg-danger
+                                {% elif pqrs.tipo == 'queja' %}bg-warning text-dark
+                                {% elif pqrs.tipo == 'peticion' %}bg-info
+                                {% elif pqrs.tipo == 'sugerencia' %}bg-secondary
+                                {% else %}bg-success{% endif %}">
+                                <i class="bi bi-tag-fill me-1"></i>{{ pqrs.get_tipo_display }}
+                            </span>
+                            <span class="badge status-badge
+                                {% if pqrs.estado == 'recibida' %}bg-secondary
+                                {% elif pqrs.estado == 'en_proceso' %}bg-primary
+                                {% elif pqrs.estado == 'escalada' %}bg-warning text-dark
+                                {% elif pqrs.estado == 'solucionada' %}bg-success
+                                {% elif pqrs.estado == 'cerrada' %}bg-dark
+                                {% else %}bg-danger{% endif %}">
+                                <i class="bi bi-circle-fill me-1"></i>{{ pqrs.get_estado_display }}
+                            </span>
+                            <span class="badge priority-badge
+                                {% if pqrs.prioridad == 'critica' %}bg-danger
+                                {% elif pqrs.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif pqrs.prioridad == 'media' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ pqrs.get_prioridad_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="mb-2">
+                            <small class="text-muted">Creada el</small><br>
+                            <strong>{{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</strong>
+                        </div>
+                        <div>
+                            <small class="text-muted">Vence el</small><br>
+                            <strong class="{% if pqrs.esta_vencida %}text-danger{% endif %}">
+                                {{ pqrs.fecha_vencimiento|date:"d/m/Y H:i" }}
+                            </strong>
+                            {% if pqrs.esta_vencida %}
+                            <br><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Vencida</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="info-card">
+                <h5 class="mb-3"><i class="bi bi-chat-text me-2"></i>Descripción</h5>
+                <p class="mb-0">{{ pqrs.descripcion|linebreaks }}</p>
+            </div>
+
+            <!-- Solución -->
+            {% if pqrs.solucion %}
+            <div class="info-card">
+                <h5 class="mb-3"><i class="bi bi-check-circle me-2"></i>Solución</h5>
+                <p class="mb-0">{{ pqrs.solucion|linebreaks }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Seguimientos -->
+            <div class="info-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Seguimientos</h5>
+                    {% if puede_editar %}
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#seguimientoModal">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar Seguimiento
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <div class="timeline">
+                    {% for seguimiento in seguimientos %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker">
+                            <i class="bi 
+                                {% if seguimiento.tipo_seguimiento == 'respuesta' %}bi-reply-fill
+                                {% elif seguimiento.tipo_seguimiento == 'nota_interna' %}bi-sticky-fill
+                                {% elif seguimiento.tipo_seguimiento == 'escalamiento' %}bi-arrow-up-circle-fill
+                                {% elif seguimiento.tipo_seguimiento == 'solucion' %}bi-check-circle-fill
+                                {% else %}bi-arrow-repeat{% endif %}"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ seguimiento.get_tipo_seguimiento_display }}</strong>
+                                    <small class="text-muted ms-2">por {{ seguimiento.usuario.get_full_name|default:seguimiento.usuario.username }}</small>
+                                </div>
+                                <small class="text-muted">{{ seguimiento.fecha|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <p class="mb-0">{{ seguimiento.descripcion|linebreaks }}</p>
+                            {% if seguimiento.estado_anterior and seguimiento.estado_nuevo %}
+                            <div class="mt-2">
+                                <span class="badge bg-light text-dark">{{ seguimiento.estado_anterior }}</span>
+                                <i class="bi bi-arrow-right mx-1"></i>
+                                <span class="badge bg-primary">{{ seguimiento.estado_nuevo }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
+                        <p class="mt-2">No hay seguimientos registrados</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Botones de acción -->
+            <div class="action-buttons">
+                <div class="info-card">
+                    <h6 class="mb-3">Acciones</h6>
+                    <div class="d-grid gap-2">
+                        {% if puede_editar %}
+                        <a href="{% url 'gestion:pqrs_edit' pqrs.id_pqrs %}" class="btn btn-primary">
+                            <i class="bi bi-pencil me-2"></i>Editar PQRS
+                        </a>
+                        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal">
+                            <i class="bi bi-arrow-repeat me-2"></i>Cambiar Estado
+                        </button>
+                        {% endif %}
+                        <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&titulo=Gestionar%20PQRS:%20{{ pqrs.asunto|urlencode }}" class="btn btn-outline-info">
+                            <i class="bi bi-check2-square me-2"></i>Crear Tarea
+                        </a>
+                        <a href="{% url 'gestion:pqrs_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Volver a Lista
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Información del contacto -->
+                <div class="info-card">
+                    <h6 class="mb-3">Información del Contacto</h6>
+                    <div class="mb-2">
+                        <strong>{{ pqrs.nombre_contacto }}</strong>
+                    </div>
+                    <div class="mb-2">
+                        <i class="bi bi-envelope me-2"></i>
+                        <a href="mailto:{{ pqrs.email_contacto }}">{{ pqrs.email_contacto }}</a>
+                    </div>
+                    {% if pqrs.telefono_contacto %}
+                    <div class="mb-2">
+                        <i class="bi bi-telephone me-2"></i>
+                        <a href="tel:{{ pqrs.telefono_contacto }}">{{ pqrs.telefono_contacto }}</a>
+                    </div>
+                    {% endif %}
+                    <div class="mb-2">
+                        <i class="bi bi-broadcast me-2"></i>
+                        {{ pqrs.get_canal_recepcion_display }}
+                    </div>
+                </div>
+
+                <!-- Información del cliente -->
+                {% if pqrs.cliente %}
+                <div class="info-card">
+                    <h6 class="mb-3">Cliente Relacionado</h6>
+                    <div class="mb-2">
+                        <strong>{{ pqrs.cliente.tercero.nombre }}</strong>
+                    </div>
+                    <div class="mb-2">
+                        <i class="bi bi-building me-2"></i>
+                        {{ pqrs.cliente.tercero.get_tipo_display }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="bi bi-envelope me-2"></i>
+                        {{ pqrs.cliente.tercero.email }}
+                    </div>
+                    <div>
+                        <a href="{% url 'gestion:cliente_detail' pqrs.cliente.id_cliente %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Ver Cliente
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Asignación -->
+                <div class="info-card">
+                    <h6 class="mb-3">Asignación</h6>
+                    <div class="mb-2">
+                        <strong>Asignado a:</strong><br>
+                        {{ pqrs.usuario_asignado.get_full_name|default:pqrs.usuario_asignado.username }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Creado por:</strong><br>
+                        {{ pqrs.usuario_creacion.get_full_name|default:pqrs.usuario_creacion.username }}
+                    </div>
+                    {% if pqrs.fecha_asignacion %}
+                    <div>
+                        <strong>Fecha asignación:</strong><br>
+                        {{ pqrs.fecha_asignacion|date:"d/m/Y H:i" }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Métricas -->
+                <div class="info-card">
+                    <h6 class="mb-3">Métricas</h6>
+                    {% if pqrs.tiempo_respuesta %}
+                    <div class="mb-2">
+                        <strong>Tiempo de respuesta:</strong><br>
+                        {{ pqrs.tiempo_respuesta }}
+                    </div>
+                    {% endif %}
+                    {% if pqrs.tiempo_solucion %}
+                    <div class="mb-2">
+                        <strong>Tiempo de solución:</strong><br>
+                        {{ pqrs.tiempo_solucion }}
+                    </div>
+                    {% endif %}
+                    {% if pqrs.satisfaccion_cliente %}
+                    <div>
+                        <strong>Satisfacción:</strong><br>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">{{ pqrs.satisfaccion_cliente }}/5</span>
+                            <div>
+                                {% for i in "12345" %}
+                                <i class="bi bi-star{% if forloop.counter <= pqrs.satisfaccion_cliente %}-fill text-warning{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar seguimiento -->
+{% if puede_editar %}
+<div class="modal fade" id="seguimientoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Seguimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'gestion:agregar_seguimiento' pqrs.id_pqrs %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tipo_seguimiento" class="form-label">Tipo de Seguimiento</label>
+                        <select class="form-select" id="tipo_seguimiento" name="tipo_seguimiento" required>
+                            <option value="respuesta">Respuesta al Cliente</option>
+                            <option value="nota_interna">Nota Interna</option>
+                            <option value="escalamiento">Escalamiento</option>
+                            <option value="solucion">Solución</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcion" name="descripcion" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="visible_cliente" name="visible_cliente" checked>
+                            <label class="form-check-label" for="visible_cliente">
+                                Visible para el cliente
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="notificar_cliente" name="notificar_cliente" checked>
+                            <label class="form-check-label" for="notificar_cliente">
+                                Notificar al cliente
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar Seguimiento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar estado -->
+<div class="modal fade" id="cambiarEstadoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambiar Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'gestion:cambiar_estado_pqrs' pqrs.id_pqrs %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="estado" class="form-label">Nuevo Estado</label>
+                        <select class="form-select" id="estado" name="estado" required>
+                            {% for value, label in pqrs.ESTADO_CHOICES %}
+                            <option value="{{ value }}" {% if value == pqrs.estado %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Se creará automáticamente un seguimiento del cambio de estado.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cambiar Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

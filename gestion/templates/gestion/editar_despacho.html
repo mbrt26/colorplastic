@@ -18,7 +18,7 @@
           <h5>Información del Despacho</h5>
         </div>
         <div class="card-body">
-          <form method="post">
+          <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="row">
               <div class="col-md-6">
@@ -68,6 +68,24 @@
               <label class="form-label">Dirección de Entrega *</label>
               <input type="text" name="direccion_entrega" class="form-control" 
                      value="{{ despacho.direccion_entrega }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Orden de Compra</label>
+              <input type="text" name="orden_compra" class="form-control" 
+                     value="{{ despacho.orden_compra }}" placeholder="Ingrese orden de compra">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Archivo Adjunto</label>
+              <input type="file" name="archivo_adjunto" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+              {% if despacho.archivo_adjunto %}
+                <small class="form-text text-success">
+                  <i class="bi bi-check-circle"></i> Archivo actual: 
+                  <a href="{{ despacho.archivo_adjunto.url }}" target="_blank">{{ despacho.archivo_adjunto.name|cut:"despachos/archivos/" }}</a>
+                </small>
+              {% endif %}
+              <small class="form-text text-muted">Formatos: PDF, DOC, DOCX, JPG, PNG, XLSX, XLS</small>
             </div>
 
             <div class="mb-3">

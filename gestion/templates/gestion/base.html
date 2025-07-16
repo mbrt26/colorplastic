@@ -101,25 +101,112 @@
                             <i class="bi bi-speedometer2 me-1"></i>Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'traslado' in request.path %}active{% endif %}"
-                           href="{% url 'gestion:traslado_form' %}">
-                            <i class="bi bi-arrow-left-right me-1"></i>Traslados
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'despacho' in request.path %}active{% endif %}"
-                           href="{% url 'gestion:despachos' %}">
-                            <i class="bi bi-truck me-1"></i>Despachos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'produccion' in request.path %}active{% endif %}"
-                           href="{% url 'gestion:produccion_dashboard' %}">
+                    <!-- Producción -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'produccion' in request.path or 'traslado' in request.path or 'despacho' in request.path or 'ordenes' in request.path %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-gear-fill me-1"></i>Producción
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'gestion:produccion_dashboard' %}">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard Producción
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">Órdenes de Producción</li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:ordenes_dashboard' %}">
+                                <i class="bi bi-factory me-2"></i>Dashboard Órdenes
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:ordenes_list' %}">
+                                <i class="bi bi-list-check me-2"></i>Lista de Órdenes
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:calendario_produccion' %}">
+                                <i class="bi bi-calendar3 me-2"></i>Calendario Producción
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">Operaciones</li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:traslado_form' %}">
+                                <i class="bi bi-arrow-left-right me-2"></i>Traslados
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:despachos' %}">
+                                <i class="bi bi-truck me-2"></i>Despachos
+                            </a></li>
+                        </ul>
                     </li>
                     
+                    <!-- CRM -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'crm' in request.path or 'pedidos' in request.path or 'pqrs' in request.path %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-people-fill me-1"></i>CRM
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'gestion:crm_dashboard' %}">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard CRM
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:clientes_list' %}">
+                                <i class="bi bi-building me-2"></i>Clientes
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:oportunidades_list' %}">
+                                <i class="bi bi-currency-dollar me-2"></i>Oportunidades
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:interacciones_timeline' %}">
+                                <i class="bi bi-chat-dots me-2"></i>Interacciones
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">PQRS</li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:pqrs_dashboard' %}">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard PQRS
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:pqrs_list' %}">
+                                <i class="bi bi-list-ul me-2"></i>Lista PQRS
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:pqrs_create' %}">
+                                <i class="bi bi-plus-circle me-2"></i>Nueva PQRS
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:mis_pqrs' %}">
+                                <i class="bi bi-person-check me-2"></i>Mis PQRS
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">Pedidos</li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:pedidos_dashboard' %}">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard Pedidos
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:pedidos_list' %}">
+                                <i class="bi bi-list-ul me-2"></i>Lista de Pedidos
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:pedido_create' %}">
+                                <i class="bi bi-plus-circle me-2"></i>Nuevo Pedido
+                            </a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Tareas -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'tareas' in request.path %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-check2-square me-1"></i>Tareas
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'gestion:tareas_dashboard' %}">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard Tareas
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:mis_tareas' %}">
+                                <i class="bi bi-person-check me-2"></i>Mis Tareas
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:tareas_equipo' %}">
+                                <i class="bi bi-people me-2"></i>Tareas del Equipo
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:calendario_tareas' %}">
+                                <i class="bi bi-calendar3 me-2"></i>Calendario
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion:tarea_create' %}">
+                                <i class="bi bi-plus-circle me-2"></i>Nueva Tarea
+                            </a></li>
+                        </ul>
+                    </li>
                     
                     <!-- Inventario -->
                     <li class="nav-item dropdown">

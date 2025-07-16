@@ -1,0 +1,355 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Lista de PQRS - ColorPlastic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .table-container {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .badge-tipo {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+    }
+    .badge-estado {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+    .badge-prioridad {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f9fafb;
+        cursor: pointer;
+    }
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .vencida {
+        background-color: #fee2e2;
+        border-left: 4px solid #dc2626;
+    }
+    .critica {
+        background-color: #fef3c7;
+        border-left: 4px solid #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Lista de PQRS</h1>
+            <p class="text-muted mb-0">Gestión de Peticiones, Quejas, Reclamos y Sugerencias</p>
+        </div>
+        <div>
+            <a href="{% url 'gestion:pqrs_dashboard' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+            <a href="{% url 'gestion:pqrs_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nueva PQRS
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="busqueda" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Número, asunto, contacto, email...">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo">
+                        <option value="">Todos los tipos</option>
+                        {% for value, label in tipo_choices %}
+                        <option value="{{ value }}" {% if tipo == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for value, label in estado_choices %}
+                        <option value="{{ value }}" {% if estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="prioridad" class="form-label">Prioridad</label>
+                    <select class="form-select" id="prioridad" name="prioridad">
+                        <option value="">Todas las prioridades</option>
+                        {% for value, label in prioridad_choices %}
+                        <option value="{{ value }}" {% if prioridad == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="usuario_asignado" class="form-label">Asignado a</label>
+                    <select class="form-select" id="usuario_asignado" name="usuario_asignado">
+                        <option value="">Todos los usuarios</option>
+                        {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}" {% if usuario_asignado == usuario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ usuario.get_full_name|default:usuario.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-1">
+                    <label for="canal" class="form-label">Canal</label>
+                    <select class="form-select" id="canal" name="canal">
+                        <option value="">Todos</option>
+                        {% for value, label in canal_choices %}
+                        <option value="{{ value }}" {% if canal == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row g-3 mt-2">
+                <div class="col-md-2">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="solo_vencidas" name="solo_vencidas" 
+                               {% if solo_vencidas %}checked{% endif %}>
+                        <label class="form-check-label" for="solo_vencidas">
+                            Solo vencidas
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i>Buscar
+                        </button>
+                        <a href="{% url 'gestion:pqrs_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de PQRS -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Número</th>
+                        <th>Tipo</th>
+                        <th>Asunto</th>
+                        <th>Contacto</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th>Asignado a</th>
+                        <th>Fecha Creación</th>
+                        <th>Vencimiento</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pqrs in page_obj %}
+                    <tr class="{% if pqrs.esta_vencida %}vencida{% elif pqrs.prioridad == 'critica' %}critica{% endif %}"
+                        onclick="window.location='{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}';" style="cursor: pointer;">
+                        <td>
+                            <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" 
+                               class="text-decoration-none fw-bold">
+                                {{ pqrs.numero_pqrs }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge badge-tipo
+                                {% if pqrs.tipo == 'reclamo' %}bg-danger
+                                {% elif pqrs.tipo == 'queja' %}bg-warning text-dark
+                                {% elif pqrs.tipo == 'peticion' %}bg-info
+                                {% elif pqrs.tipo == 'sugerencia' %}bg-secondary
+                                {% else %}bg-success{% endif %}">
+                                {{ pqrs.get_tipo_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ pqrs.asunto|truncatewords:6 }}</div>
+                            {% if pqrs.cliente %}
+                            <small class="text-muted">{{ pqrs.cliente.tercero.nombre }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ pqrs.nombre_contacto }}</div>
+                            <small class="text-muted">{{ pqrs.email_contacto }}</small>
+                        </td>
+                        <td>
+                            <span class="badge badge-estado
+                                {% if pqrs.estado == 'recibida' %}bg-secondary
+                                {% elif pqrs.estado == 'en_proceso' %}bg-primary
+                                {% elif pqrs.estado == 'escalada' %}bg-warning text-dark
+                                {% elif pqrs.estado == 'solucionada' %}bg-success
+                                {% elif pqrs.estado == 'cerrada' %}bg-dark
+                                {% else %}bg-danger{% endif %}">
+                                {{ pqrs.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-prioridad
+                                {% if pqrs.prioridad == 'critica' %}bg-danger
+                                {% elif pqrs.prioridad == 'alta' %}bg-warning text-dark
+                                {% elif pqrs.prioridad == 'media' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ pqrs.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div>{{ pqrs.usuario_asignado.get_full_name|default:pqrs.usuario_asignado.username }}</div>
+                            <small class="text-muted">{{ pqrs.get_canal_recepcion_display }}</small>
+                        </td>
+                        <td>
+                            <div>{{ pqrs.fecha_creacion|date:"d/m/Y" }}</div>
+                            <small class="text-muted">{{ pqrs.fecha_creacion|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <div {% if pqrs.esta_vencida %}class="text-danger fw-bold"{% endif %}>
+                                {{ pqrs.fecha_vencimiento|date:"d/m/Y" }}
+                            </div>
+                            <small class="text-muted">{{ pqrs.fecha_vencimiento|time:"H:i" }}</small>
+                            {% if pqrs.esta_vencida %}
+                            <div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Vencida</small></div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'gestion:pqrs_detail' pqrs.id_pqrs %}" 
+                                   class="btn btn-sm btn-outline-primary btn-action" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'gestion:pqrs_edit' pqrs.id_pqrs %}" 
+                                   class="btn btn-sm btn-outline-secondary btn-action" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&titulo=Gestionar%20PQRS:%20{{ pqrs.asunto|urlencode }}" 
+                                   class="btn btn-sm btn-outline-info btn-action" title="Crear tarea">
+                                    <i class="bi bi-check2-square"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-5">
+                            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-2 text-muted">No se encontraron PQRS con los filtros seleccionados</p>
+                            <a href="{% url 'gestion:pqrs_create' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-2"></i>Crear Primera PQRS
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-light">
+            <nav aria-label="Navegación de PQRS">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if usuario_asignado %}&usuario_asignado={{ usuario_asignado }}{% endif %}{% if canal %}&canal={{ canal }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if solo_vencidas %}&solo_vencidas={{ solo_vencidas }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if usuario_asignado %}&usuario_asignado={{ usuario_asignado }}{% endif %}{% if canal %}&canal={{ canal }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if solo_vencidas %}&solo_vencidas={{ solo_vencidas }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if prioridad %}&prioridad={{ prioridad }}{% endif %}{% if usuario_asignado %}&usuario_asignado={{ usuario_asignado }}{% endif %}{% if canal %}&canal={{ canal }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if solo_vencidas %}&solo_vencidas={{ solo_vencidas }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            
+            <!-- Información de paginación -->
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} PQRS
+                </small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-submit form when filters change
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('filterForm');
+    const selects = form.querySelectorAll('select');
+    const checkbox = form.querySelector('#solo_vencidas');
+    
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            form.submit();
+        });
+    });
+    
+    checkbox.addEventListener('change', function() {
+        form.submit();
+    });
+});
+</script>
+{% endblock %}

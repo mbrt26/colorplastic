@@ -1,0 +1,341 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard CRM - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="container-fluid fade-in-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people-fill me-2"></i>Dashboard CRM</h2>
+        <div class="btn-group">
+            <a href="{% url 'gestion:cliente_create' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus me-2"></i>Nuevo Cliente
+            </a>
+            <a href="{% url 'gestion:oportunidad_create' %}" class="btn btn-outline-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nueva Oportunidad
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs Principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_clientes }}</div>
+                        <div class="stat-label">Total Clientes</div>
+                    </div>
+                    <i class="bi bi-people process-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ clientes_activos }}</div>
+                        <div class="stat-label">Clientes Activos</div>
+                    </div>
+                    <i class="bi bi-person-check process-icon text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ oportunidades_abiertas }}</div>
+                        <div class="stat-label">Oportunidades Abiertas</div>
+                    </div>
+                    <i class="bi bi-graph-up process-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">${{ pipeline_total|floatformat:0 }}</div>
+                        <div class="stat-label">Pipeline Total</div>
+                    </div>
+                    <i class="bi bi-currency-dollar process-icon text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline y Métricas -->
+    <div class="row mb-4">
+        <!-- Pipeline por Etapa -->
+        <div class="col-lg-8 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-process">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-funnel me-2"></i>Pipeline por Etapa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if oportunidades_por_etapa %}
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Etapa</th>
+                                    <th>Cantidad</th>
+                                    <th>Valor Total</th>
+                                    <th>Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for etapa in oportunidades_por_etapa %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">{{ etapa.etapa|title }}</span>
+                                    </td>
+                                    <td>{{ etapa.count }}</td>
+                                    <td>${{ etapa.valor|floatformat:0 }}</td>
+                                    <td>${{ etapa.promedio|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No hay oportunidades en el pipeline</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas Adicionales -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial h-100">
+                <div class="card-header card-header-inventory">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>Métricas del Mes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Clientes Nuevos</span>
+                            <strong>{{ clientes_nuevos }}</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Pipeline Ponderado</span>
+                            <strong>${{ pipeline_ponderado|floatformat:0 }}</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Tasa de Conversión</span>
+                            <strong>
+                                {% if total_oportunidades > 0 %}
+                                    {{ tasa_conversion|floatformat:1 }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actividades y Próximos Pasos -->
+    <div class="row">
+        <!-- Interacciones Recientes -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial">
+                <div class="card-header card-header-production">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Actividades Recientes
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic mb-0">
+                            <tbody>
+                                {% for interaccion in interacciones_recientes|slice:":8" %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex">
+                                            <div class="me-2">
+                                                {% if interaccion.tipo == 'llamada' %}
+                                                    <i class="bi bi-telephone text-primary"></i>
+                                                {% elif interaccion.tipo == 'email' %}
+                                                    <i class="bi bi-envelope text-info"></i>
+                                                {% elif interaccion.tipo == 'reunion' %}
+                                                    <i class="bi bi-calendar-event text-success"></i>
+                                                {% elif interaccion.tipo == 'visita' %}
+                                                    <i class="bi bi-geo-alt text-warning"></i>
+                                                {% else %}
+                                                    <i class="bi bi-chat-dots text-secondary"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ interaccion.cliente.tercero.nombre|truncatechars:25 }}</div>
+                                                <small class="text-muted">{{ interaccion.asunto|truncatechars:30 }}</small><br>
+                                                <small class="text-muted">{{ interaccion.fecha_interaccion|date:"d/m H:i" }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td class="text-center text-muted py-3">
+                                        <i class="bi bi-inbox me-2"></i>No hay actividades recientes
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Próximas Actividades -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial">
+                <div class="card-header card-header-inventory">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-calendar-check me-2"></i>Próximas Actividades
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic mb-0">
+                            <tbody>
+                                {% for actividad in proximas_actividades|slice:":8" %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex">
+                                            <div class="me-2">
+                                                <i class="bi bi-clock text-warning"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ actividad.cliente.tercero.nombre|truncatechars:25 }}</div>
+                                                <small class="text-muted">{{ actividad.asunto|truncatechars:30 }}</small><br>
+                                                <small class="text-warning">{{ actividad.fecha_seguimiento|date:"d/m/Y" }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td class="text-center text-muted py-3">
+                                        <i class="bi bi-check-circle me-2"></i>No hay actividades pendientes
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oportunidades Próximas a Cerrar -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-industrial">
+                <div class="card-header card-header-process">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-target me-2"></i>Próximas a Cerrar
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-colorplastic mb-0">
+                            <tbody>
+                                {% for oportunidad in proximas_a_cerrar|slice:":8" %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex">
+                                            <div class="me-2">
+                                                {% if oportunidad.prioridad == 'alta' %}
+                                                    <i class="bi bi-exclamation-triangle text-danger"></i>
+                                                {% elif oportunidad.prioridad == 'media' %}
+                                                    <i class="bi bi-dash-circle text-warning"></i>
+                                                {% else %}
+                                                    <i class="bi bi-circle text-info"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ oportunidad.cliente.tercero.nombre|truncatechars:20 }}</div>
+                                                <small class="text-muted">${{ oportunidad.valor_estimado|floatformat:0 }}</small><br>
+                                                <small class="text-muted">{{ oportunidad.fecha_cierre_estimada|date:"d/m/Y" }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td class="text-center text-muted py-3">
+                                        <i class="bi bi-inbox me-2"></i>No hay oportunidades próximas
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enlaces Rápidos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-industrial">
+                <div class="card-header card-header-inventory">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightning me-2"></i>Accesos Rápidos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <a href="{% url 'gestion:clientes_list' %}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-people me-2"></i>Ver Clientes
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'gestion:oportunidades_list' %}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-graph-up me-2"></i>Oportunidades
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'gestion:cliente_create' %}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-person-plus me-2"></i>Nuevo Cliente
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'gestion:oportunidad_create' %}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-plus-circle me-2"></i>Nueva Oportunidad
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="#" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-bar-chart me-2"></i>Reportes
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="#" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-gear me-2"></i>Configuración
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

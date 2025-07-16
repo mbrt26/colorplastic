@@ -1,0 +1,243 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Clientes CRM - ColorPlastic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people me-2"></i>Gestión de Clientes</h2>
+        <div class="btn-group">
+            <a href="{% url 'gestion:crm_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Dashboard CRM
+            </a>
+            <a href="{% url 'gestion:cliente_create' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus me-2"></i>Nuevo Cliente
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="busqueda" class="form-label">Búsqueda</label>
+                    <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                           value="{{ busqueda }}" placeholder="Nombre, NIT, industria...">
+                </div>
+                <div class="col-md-2">
+                    <label for="tipo_cliente" class="form-label">Tipo de Cliente</label>
+                    <select class="form-select" id="tipo_cliente" name="tipo_cliente">
+                        <option value="">Todos</option>
+                        {% for value, display in tipo_cliente_choices %}
+                        <option value="{{ value }}" {% if tipo_cliente == value %}selected{% endif %}>
+                            {{ display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos</option>
+                        {% for value, display in estado_choices %}
+                        <option value="{{ value }}" {% if estado == value %}selected{% endif %}>
+                            {{ display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="usuario_asignado" class="form-label">Usuario Asignado</label>
+                    <select class="form-select" id="usuario_asignado" name="usuario_asignado">
+                        <option value="">Todos</option>
+                        {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}" {% if usuario_asignado == usuario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ usuario.first_name }} {{ usuario.last_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-1"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Clientes -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-colorplastic mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Usuario Asignado</th>
+                            <th>Industria</th>
+                            <th>Última Interacción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in page_obj %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <div class="fw-bold">{{ cliente.tercero.nombre }}</div>
+                                    <small class="text-muted">
+                                        {% if cliente.tercero.identificacion %}
+                                            {{ cliente.tercero.identificacion }}
+                                        {% endif %}
+                                        {% if cliente.tercero.email %}
+                                            | {{ cliente.tercero.email }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if cliente.tipo_cliente == 'corporativo' %}bg-primary
+                                    {% elif cliente.tipo_cliente == 'pyme' %}bg-success
+                                    {% elif cliente.tipo_cliente == 'distribuidor' %}bg-warning
+                                    {% elif cliente.tipo_cliente == 'gobierno' %}bg-info
+                                    {% else %}bg-secondary
+                                    {% endif %}">
+                                    {{ cliente.get_tipo_cliente_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if cliente.estado == 'activo' %}bg-success
+                                    {% elif cliente.estado == 'prospecto' %}bg-warning
+                                    {% elif cliente.estado == 'inactivo' %}bg-secondary
+                                    {% else %}bg-danger
+                                    {% endif %}">
+                                    {{ cliente.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ cliente.usuario_asignado.first_name }} {{ cliente.usuario_asignado.last_name }}</small>
+                            </td>
+                            <td>
+                                <small>{{ cliente.industria|default:"N/A" }}</small>
+                            </td>
+                            <td>
+                                <small>
+                                    {% if cliente.fecha_ultima_interaccion %}
+                                        {{ cliente.fecha_ultima_interaccion|date:"d/m/Y" }}
+                                    {% else %}
+                                        <span class="text-muted">Sin interacciones</span>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'gestion:cliente_detail' cliente.id_cliente %}" 
+                                       class="btn btn-outline-primary" title="Ver Detalle">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'gestion:cliente_edit' cliente.id_cliente %}" 
+                                       class="btn btn-outline-secondary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-success" 
+                                            title="Nueva Oportunidad">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mt-2">No se encontraron clientes</p>
+                                <a href="{% url 'gestion:cliente_create' %}" class="btn btn-primary">
+                                    <i class="bi bi-person-plus me-2"></i>Crear Primer Cliente
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Paginación de clientes" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Estadísticas del filtro actual -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-number">{{ page_obj.paginator.count }}</div>
+                            <div class="stat-label">Clientes Encontrados</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-number">
+                                {% with activos=page_obj.object_list|length %}
+                                    {{ activos }}
+                                {% endwith %}
+                            </div>
+                            <div class="stat-label">En Esta Página</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-number">{{ page_obj.paginator.num_pages }}</div>
+                            <div class="stat-label">Total Páginas</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-number">{{ page_obj.number }}</div>
+                            <div class="stat-label">Página Actual</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

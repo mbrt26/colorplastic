@@ -1,0 +1,445 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if tarea %}Editar Tarea {{ tarea.codigo }}{% else %}Nueva Tarea{% endif %} - ColorPlastic
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    .form-section h4 {
+        margin-bottom: 1.5rem;
+        color: #1f2937;
+        font-size: 1.25rem;
+        font-weight: 600;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+    }
+    .subtarea-item {
+        background: #f9fafb;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .subtarea-item input {
+        flex: 1;
+    }
+    .btn-remove {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .tag-input {
+        position: relative;
+    }
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .tag-badge {
+        background: #e5e7eb;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .tag-badge button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <div class="d-flex align-items-center justify-between">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">
+                    {% if tarea %}Editar Tarea: {{ tarea.codigo }}{% else %}Nueva Tarea{% endif %}
+                </h1>
+                <p class="text-muted mb-0">
+                    {% if tarea %}
+                        Actualizar información de la tarea
+                    {% else %}
+                        Complete el formulario para crear una nueva tarea
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="tareaForm">
+        {% csrf_token %}
+        <input type="hidden" name="subtareas" id="subtareasInput">
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Información Básica -->
+                <div class="form-section">
+                    <h4>Información Básica</h4>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="titulo" class="form-label">Título <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="titulo" name="titulo" required
+                                   value="{% if tarea %}{{ tarea.titulo }}{% endif %}"
+                                   placeholder="Descripción breve de la tarea">
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label for="descripcion" class="form-label">Descripción <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" rows="4" required
+                                      placeholder="Descripción detallada de la tarea">{% if tarea %}{{ tarea.descripcion }}{% endif %}</textarea>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="tipo" class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Seleccionar tipo...</option>
+                                {% for value, label in tipo_choices %}
+                                <option value="{{ value }}" {% if tarea and tarea.tipo == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="prioridad" class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" id="prioridad" name="prioridad" required>
+                                {% for value, label in prioridad_choices %}
+                                <option value="{{ value }}" 
+                                        {% if tarea and tarea.prioridad == value %}selected
+                                        {% elif not tarea and value == 'media' %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="modulo_origen" class="form-label">Módulo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="modulo_origen" name="modulo_origen" required
+                                    onchange="actualizarEntidades()">
+                                <option value="">Seleccionar módulo...</option>
+                                {% for value, label in modulo_choices %}
+                                <option value="{{ value }}" 
+                                        {% if tarea and tarea.modulo_origen == value %}selected
+                                        {% elif modulo_origen == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asignación -->
+                <div class="form-section">
+                    <h4>Asignación</h4>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="asignado_a" class="form-label">Asignado a <span class="text-danger">*</span></label>
+                            <select class="form-select" id="asignado_a" name="asignado_a" required>
+                                <option value="">Seleccionar usuario...</option>
+                                {% for usuario in usuarios %}
+                                <option value="{{ usuario.id }}" 
+                                        {% if tarea and tarea.asignado_a == usuario %}selected
+                                        {% elif not tarea and usuario == request.user %}selected{% endif %}>
+                                    {{ usuario.get_full_name|default:usuario.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="fecha_vencimiento" class="form-label">Fecha de Vencimiento <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento" required
+                                   value="{% if tarea %}{{ tarea.fecha_vencimiento|date:'Y-m-d' }}T{{ tarea.fecha_vencimiento|time:'H:i' }}{% else %}{{ fecha_default|date:'Y-m-d' }}T09:00{% endif %}">
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label for="equipo" class="form-label">Miembros del Equipo</label>
+                            <select class="form-select" id="equipo" name="equipo" multiple size="5">
+                                {% for usuario in usuarios %}
+                                <option value="{{ usuario.id }}" 
+                                        {% if tarea and usuario.id in equipo_ids %}selected{% endif %}>
+                                    {{ usuario.get_full_name|default:usuario.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Mantenga presionado Ctrl/Cmd para seleccionar múltiples usuarios</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entidad Relacionada -->
+                <div class="form-section" id="entidadSection" style="display: none;">
+                    <h4>Entidad Relacionada</h4>
+                    <div class="row g-3">
+                        <div class="col-md-12" id="entidadContainer">
+                            <!-- Se llenará dinámicamente según el módulo seleccionado -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subtareas -->
+                <div class="form-section">
+                    <h4>Subtareas / Checklist</h4>
+                    
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="nuevaSubtarea" 
+                                   placeholder="Agregar nueva subtarea...">
+                            <button type="button" class="btn btn-primary" onclick="agregarSubtarea()">
+                                <i class="bi bi-plus-circle"></i> Agregar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="subtareasList">
+                        <!-- Las subtareas se agregarán aquí dinámicamente -->
+                    </div>
+                    
+                    <div id="emptySubtareas" class="text-center py-3 text-muted">
+                        <i class="bi bi-list-ul" style="font-size: 2rem;"></i>
+                        <p class="mt-2">No hay subtareas definidas</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración Adicional -->
+            <div class="col-lg-4">
+                <div class="form-section">
+                    <h4>Configuración Adicional</h4>
+                    
+                    <div class="mb-3">
+                        <label for="categoria" class="form-label">Categoría</label>
+                        <input type="text" class="form-control" id="categoria" name="categoria"
+                               value="{% if tarea %}{{ tarea.categoria|default:'' }}{% endif %}"
+                               placeholder="Ej: Urgente, Seguimiento, etc.">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="etiquetas" class="form-label">Etiquetas</label>
+                        <input type="text" class="form-control" id="etiquetas" name="etiquetas"
+                               value="{% if tarea %}{{ etiquetas_str }}{% endif %}"
+                               placeholder="Separe las etiquetas con comas">
+                        <small class="form-text text-muted">Ejemplo: importante, cliente-vip, revision</small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3">Recordatorios</h5>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="enviar_recordatorio" name="enviar_recordatorio"
+                               {% if not tarea or tarea.enviar_recordatorio %}checked{% endif %}>
+                        <label class="form-check-label" for="enviar_recordatorio">
+                            Enviar recordatorio antes del vencimiento
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3" id="diasRecordatorioContainer">
+                        <label for="dias_antes_recordatorio" class="form-label">Días antes del vencimiento</label>
+                        <input type="number" class="form-control" id="dias_antes_recordatorio" 
+                               name="dias_antes_recordatorio" min="1" max="30"
+                               value="{% if tarea %}{{ tarea.dias_antes_recordatorio }}{% else %}1{% endif %}">
+                    </div>
+                    
+                    <div class="mt-4 d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>
+                            {% if tarea %}Actualizar{% else %}Crear{% endif %} Tarea
+                        </button>
+                        <a href="{% if tarea %}{% url 'gestion:tarea_detail' tarea.id_tarea %}{% else %}{% url 'gestion:mis_tareas' %}{% endif %}" 
+                           class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let subtareas = {% if tarea and subtareas_json %}{{ subtareas_json|safe }}{% else %}[]{% endif %};
+
+// Toggle recordatorio
+document.getElementById('enviar_recordatorio').addEventListener('change', function() {
+    document.getElementById('diasRecordatorioContainer').style.display = this.checked ? 'block' : 'none';
+});
+
+// Agregar subtarea
+function agregarSubtarea() {
+    const input = document.getElementById('nuevaSubtarea');
+    const titulo = input.value.trim();
+    
+    if (!titulo) return;
+    
+    subtareas.push({
+        titulo: titulo,
+        completada: false
+    });
+    
+    input.value = '';
+    renderSubtareas();
+}
+
+// Eliminar subtarea
+function eliminarSubtarea(index) {
+    subtareas.splice(index, 1);
+    renderSubtareas();
+}
+
+// Renderizar subtareas
+function renderSubtareas() {
+    const container = document.getElementById('subtareasList');
+    const emptyMessage = document.getElementById('emptySubtareas');
+    
+    if (subtareas.length === 0) {
+        container.innerHTML = '';
+        emptyMessage.style.display = 'block';
+        return;
+    }
+    
+    emptyMessage.style.display = 'none';
+    
+    container.innerHTML = subtareas.map((subtarea, index) => `
+        <div class="subtarea-item">
+            <input type="text" class="form-control form-control-sm" 
+                   value="${subtarea.titulo}" 
+                   onchange="actualizarSubtarea(${index}, this.value)">
+            <button type="button" class="btn btn-danger btn-sm btn-remove" 
+                    onclick="eliminarSubtarea(${index})">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+// Actualizar subtarea
+function actualizarSubtarea(index, titulo) {
+    subtareas[index].titulo = titulo;
+}
+
+// Actualizar entidades según módulo
+function actualizarEntidades() {
+    const modulo = document.getElementById('modulo_origen').value;
+    const section = document.getElementById('entidadSection');
+    const container = document.getElementById('entidadContainer');
+    
+    if (!modulo || modulo === 'general') {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    
+    switch(modulo) {
+        case 'crm':
+            container.innerHTML = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="cliente_id" class="form-label">Cliente</label>
+                        <select class="form-select" id="cliente_id" name="cliente_id">
+                            <option value="">Sin cliente específico</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id_cliente }}"
+                                    {% if tarea and tarea.cliente == cliente %}selected{% endif %}>
+                                {{ cliente.tercero.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="oportunidad_id" class="form-label">Oportunidad</label>
+                        <select class="form-select" id="oportunidad_id" name="oportunidad_id">
+                            <option value="">Sin oportunidad específica</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            break;
+            
+        case 'pedidos':
+            container.innerHTML = `
+                <div class="col-md-12">
+                    <label for="pedido_id" class="form-label">Pedido</label>
+                    <select class="form-select" id="pedido_id" name="pedido_id">
+                        <option value="">Sin pedido específico</option>
+                        {% for pedido in pedidos %}
+                        <option value="{{ pedido.id_pedido }}"
+                                {% if tarea and tarea.pedido == pedido %}selected{% endif %}>
+                            {{ pedido.numero_pedido }} - {{ pedido.cliente.tercero.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'ordenes':
+            container.innerHTML = `
+                <div class="col-md-12">
+                    <label for="orden_produccion_id" class="form-label">Orden de Producción</label>
+                    <select class="form-select" id="orden_produccion_id" name="orden_produccion_id">
+                        <option value="">Sin orden específica</option>
+                        {% for orden in ordenes %}
+                        <option value="{{ orden.id_orden }}"
+                                {% if tarea and tarea.orden_produccion == orden %}selected{% endif %}>
+                            {{ orden.numero_orden }} - {{ orden.pedido.cliente.tercero.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        default:
+            container.innerHTML = '<p class="text-muted">No hay entidades disponibles para este módulo</p>';
+    }
+}
+
+// Manejar envío del formulario
+document.getElementById('tareaForm').addEventListener('submit', function(e) {
+    // Guardar subtareas en el campo oculto
+    document.getElementById('subtareasInput').value = JSON.stringify(subtareas);
+});
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    renderSubtareas();
+    document.getElementById('diasRecordatorioContainer').style.display = 
+        document.getElementById('enviar_recordatorio').checked ? 'block' : 'none';
+    
+    // Si hay un módulo preseleccionado
+    {% if modulo_origen %}
+    actualizarEntidades();
+    {% elif tarea %}
+    actualizarEntidades();
+    {% endif %}
+});
+</script>
+{% endblock %}

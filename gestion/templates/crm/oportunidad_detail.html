@@ -1,0 +1,443 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}{{ oportunidad.nombre }} - Oportunidad{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    .info-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    .info-item {
+        padding: 0.5rem 0;
+    }
+    .info-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+    .info-value {
+        font-size: 1rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+    .stage-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .timeline-item {
+        display: flex;
+        padding: 1rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .timeline-item:last-child {
+        border-bottom: none;
+    }
+    .timeline-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-right: 1rem;
+    }
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ oportunidad.nombre }}</h1>
+                <p class="mt-2 text-sm text-gray-600">
+                    Cliente: <a href="{% url 'gestion:cliente_detail' oportunidad.cliente.id_cliente %}" class="text-indigo-600 hover:text-indigo-900">
+                        {{ oportunidad.cliente.tercero.nombre }}
+                    </a> | 
+                    Contacto: {{ oportunidad.contacto.nombre }} {{ oportunidad.contacto.apellido }}
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&oportunidad_id={{ oportunidad.id_oportunidad }}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Nueva Tarea
+                </a>
+                <a href="{% url 'gestion:oportunidad_edit' oportunidad.id_oportunidad %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Editar
+                </a>
+                {% if oportunidad.etapa not in 'ganada,perdida' %}
+                <button onclick="convertirAPedido()" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Convertir a Pedido
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Información Principal -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Estado y Detalles -->
+            <div class="info-card">
+                <h3>Información General</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Etapa</div>
+                        <div class="info-value">
+                            <span class="stage-badge 
+                                {% if oportunidad.etapa == 'ganada' %}bg-green-100 text-green-800
+                                {% elif oportunidad.etapa == 'perdida' %}bg-red-100 text-red-800
+                                {% elif oportunidad.etapa in 'negociacion,cierre' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ oportunidad.get_etapa_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Prioridad</div>
+                        <div class="info-value">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if oportunidad.prioridad == 'critica' %}bg-red-100 text-red-800
+                                {% elif oportunidad.prioridad == 'alta' %}bg-orange-100 text-orange-800
+                                {% elif oportunidad.prioridad == 'media' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ oportunidad.get_prioridad_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Fecha de Creación</div>
+                        <div class="info-value">{{ oportunidad.fecha_creacion|date:"d/m/Y" }}</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Fecha de Cierre Estimada</div>
+                        <div class="info-value">{{ oportunidad.fecha_cierre_estimada|date:"d/m/Y" }}</div>
+                    </div>
+                    
+                    {% if oportunidad.fecha_cierre_real %}
+                    <div class="info-item">
+                        <div class="info-label">Fecha de Cierre Real</div>
+                        <div class="info-value">{{ oportunidad.fecha_cierre_real|date:"d/m/Y" }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="info-item">
+                        <div class="info-label">Asignado a</div>
+                        <div class="info-value">{{ oportunidad.usuario_asignado.get_full_name|default:oportunidad.usuario_asignado.username }}</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="info-label">Descripción</div>
+                    <div class="info-value">{{ oportunidad.descripcion }}</div>
+                </div>
+                
+                {% if oportunidad.proximo_paso %}
+                <div class="mt-4 p-4 bg-yellow-50 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Próximo Paso</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>{{ oportunidad.proximo_paso }}</p>
+                                {% if oportunidad.fecha_proximo_paso %}
+                                <p class="mt-1">Fecha: {{ oportunidad.fecha_proximo_paso|date:"d/m/Y" }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if oportunidad.motivo_perdida %}
+                <div class="mt-4 p-4 bg-red-50 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Motivo de Pérdida</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p>{{ oportunidad.motivo_perdida }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Interacciones -->
+            <div class="info-card">
+                <div class="flex justify-between items-center mb-4">
+                    <h3>Historial de Interacciones</h3>
+                    <a href="{% url 'gestion:interaccion_create' oportunidad.cliente.id_cliente %}" 
+                       class="text-sm text-indigo-600 hover:text-indigo-900">
+                        + Nueva Interacción
+                    </a>
+                </div>
+                
+                {% if interacciones %}
+                <div class="space-y-4">
+                    {% for interaccion in interacciones %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon 
+                            {% if interaccion.tipo == 'llamada' %}bg-blue-100 text-blue-600
+                            {% elif interaccion.tipo == 'email' %}bg-green-100 text-green-600
+                            {% elif interaccion.tipo == 'reunion' %}bg-purple-100 text-purple-600
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {% if interaccion.tipo == 'llamada' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                {% elif interaccion.tipo == 'email' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                {% elif interaccion.tipo == 'reunion' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                {% else %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                {% endif %}
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h4 class="text-sm font-medium text-gray-900">{{ interaccion.asunto }}</h4>
+                                <span class="text-xs text-gray-500">{{ interaccion.fecha_interaccion|date:"d/m/Y H:i" }}</span>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-600">{{ interaccion.descripcion }}</p>
+                            <div class="mt-2 flex items-center text-xs text-gray-500">
+                                <span>{{ interaccion.get_tipo_display }}</span>
+                                <span class="mx-2">•</span>
+                                <span>Por {{ interaccion.usuario.get_full_name|default:interaccion.usuario.username }}</span>
+                                {% if interaccion.contacto %}
+                                <span class="mx-2">•</span>
+                                <span>Con {{ interaccion.contacto.nombre }} {{ interaccion.contacto.apellido }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-sm">No hay interacciones registradas.</p>
+                {% endif %}
+            </div>
+
+            <!-- Pedidos Relacionados -->
+            {% if pedidos %}
+            <div class="info-card">
+                <h3>Pedidos Relacionados</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Número
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Fecha
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Estado
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Total
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for pedido in pedidos %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <a href="#" class="text-indigo-600 hover:text-indigo-900">
+                                        {{ pedido.numero_pedido }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ pedido.fecha_pedido|date:"d/m/Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        {% if pedido.estado == 'completado' %}bg-green-100 text-green-800
+                                        {% elif pedido.estado == 'en_produccion' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ pedido.get_estado_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${{ pedido.total|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Información Financiera -->
+            <div class="info-card">
+                <h3>Información Financiera</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="info-label">Valor Estimado</div>
+                        <div class="text-2xl font-bold text-gray-900">
+                            ${{ oportunidad.valor_estimado|floatformat:2 }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="info-label">Probabilidad</div>
+                        <div class="flex items-center">
+                            <div class="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                                <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ oportunidad.probabilidad }}%"></div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-900">{{ oportunidad.probabilidad }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="info-label">Valor Ponderado</div>
+                        <div class="text-xl font-semibold text-indigo-600">
+                            ${{ oportunidad.valor_ponderado|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tareas Relacionadas -->
+            <div class="info-card">
+                <h3>Tareas Relacionadas</h3>
+                {% if tareas %}
+                <div class="space-y-2 mb-3">
+                    {% for tarea in tareas|slice:":5" %}
+                    <div class="p-2 border rounded-md hover:bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <a href="{% url 'gestion:tarea_detail' tarea.id_tarea %}" class="text-sm font-medium text-gray-900 hover:text-indigo-600">
+                                    {{ tarea.titulo|truncatewords:4 }}
+                                </a>
+                                <div class="text-xs text-gray-500">
+                                    Vence: {{ tarea.fecha_vencimiento|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if tarea.estado == 'completada' %}bg-green-100 text-green-800
+                                {% elif tarea.estado == 'en_progreso' %}bg-blue-100 text-blue-800
+                                {% elif tarea.estado == 'vencida' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ tarea.get_estado_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if tareas.count > 5 %}
+                <p class="text-xs text-gray-500 text-center">
+                    Mostrando 5 de {{ tareas.count }} tareas
+                </p>
+                {% endif %}
+                {% else %}
+                <p class="text-sm text-gray-500 text-center py-3">
+                    No hay tareas registradas
+                </p>
+                {% endif %}
+                <a href="{% url 'gestion:tarea_create' %}?modulo_origen=crm&oportunidad_id={{ oportunidad.id_oportunidad }}" 
+                   class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mt-3">
+                    <i class="bi bi-plus-circle mr-2"></i>
+                    Nueva Tarea
+                </a>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="info-card">
+                <h3>Acciones Rápidas</h3>
+                <div class="space-y-2">
+                    <a href="{% url 'gestion:interaccion_create' oportunidad.cliente.id_cliente %}" 
+                       class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Registrar Interacción
+                    </a>
+                    
+                    {% if oportunidad.etapa not in 'ganada,perdida' %}
+                    <button onclick="marcarComoGanada()" 
+                            class="block w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        Marcar como Ganada
+                    </button>
+                    
+                    <button onclick="marcarComoPerdida()" 
+                            class="block w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                        Marcar como Perdida
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function marcarComoGanada() {
+    if (confirm('¿Está seguro de marcar esta oportunidad como ganada?')) {
+        window.location.href = '{% url "gestion:oportunidad_edit" oportunidad.id_oportunidad %}?etapa=ganada';
+    }
+}
+
+function marcarComoPerdida() {
+    if (confirm('¿Está seguro de marcar esta oportunidad como perdida?')) {
+        window.location.href = '{% url "gestion:oportunidad_edit" oportunidad.id_oportunidad %}?etapa=perdida';
+    }
+}
+
+function convertirAPedido() {
+    alert('Función de conversión a pedido próximamente disponible');
+}
+</script>
+{% endblock %}

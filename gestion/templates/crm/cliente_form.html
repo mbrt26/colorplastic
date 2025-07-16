@@ -1,0 +1,244 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if cliente %}Editar Cliente{% else %}Nuevo Cliente{% endif %} - ColorPlastic
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-person me-2"></i>
+            {% if cliente %}Editar Cliente{% else %}Nuevo Cliente{% endif %}
+        </h2>
+        <a href="{% url 'gestion:clientes_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Clientes
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Información Básica -->
+                        <div class="mb-4">
+                            <h5 class="card-title">Información Básica</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="nombre" class="form-label">Nombre de la Empresa *</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" 
+                                           value="{% if cliente %}{{ cliente.tercero.nombre }}{% endif %}" required>
+                                    <div class="invalid-feedback">
+                                        El nombre de la empresa es requerido.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="identificacion" class="form-label">NIT/Identificación</label>
+                                    <input type="text" class="form-control" id="identificacion" name="identificacion" 
+                                           value="{% if cliente %}{{ cliente.tercero.identificacion }}{% endif %}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tipo_cliente" class="form-label">Tipo de Cliente *</label>
+                                    <select class="form-select" id="tipo_cliente" name="tipo_cliente" required>
+                                        <option value="">Seleccione el tipo</option>
+                                        {% for value, display in tipo_cliente_choices %}
+                                        <option value="{{ value }}" 
+                                            {% if cliente and cliente.tipo_cliente == value %}selected{% endif %}>
+                                            {{ display }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        El tipo de cliente es requerido.
+                                    </div>
+                                </div>
+                                {% if cliente %}
+                                <div class="col-md-6">
+                                    <label for="estado" class="form-label">Estado</label>
+                                    <select class="form-select" id="estado" name="estado">
+                                        {% for value, display in estado_choices %}
+                                        <option value="{{ value }}" 
+                                            {% if cliente.estado == value %}selected{% endif %}>
+                                            {{ display }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Información de Contacto -->
+                        <div class="mb-4">
+                            <h5 class="card-title">Información de Contacto</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="telefono" class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="telefono" name="telefono" 
+                                           value="{% if cliente %}{{ cliente.tercero.telefono }}{% endif %}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{% if cliente %}{{ cliente.tercero.email }}{% endif %}">
+                                </div>
+                                <div class="col-12">
+                                    <label for="direccion" class="form-label">Dirección</label>
+                                    <textarea class="form-control" id="direccion" name="direccion" rows="2">{% if cliente %}{{ cliente.tercero.direccion }}{% endif %}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="sitio_web" class="form-label">Sitio Web</label>
+                                    <input type="url" class="form-control" id="sitio_web" name="sitio_web" 
+                                           value="{% if cliente %}{{ cliente.sitio_web }}{% endif %}" 
+                                           placeholder="https://www.ejemplo.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Comercial -->
+                        <div class="mb-4">
+                            <h5 class="card-title">Información Comercial</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="limite_credito" class="form-label">Límite de Crédito</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="limite_credito" name="limite_credito" 
+                                               value="{% if cliente %}{{ cliente.limite_credito }}{% else %}0{% endif %}" 
+                                               min="0" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="dias_credito" class="form-label">Días de Crédito</label>
+                                    <input type="number" class="form-control" id="dias_credito" name="dias_credito" 
+                                           value="{% if cliente %}{{ cliente.dias_credito }}{% else %}0{% endif %}" 
+                                           min="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="descuento_maximo" class="form-label">Descuento Máximo (%)</label>
+                                    <input type="number" class="form-control" id="descuento_maximo" name="descuento_maximo" 
+                                           value="{% if cliente %}{{ cliente.descuento_maximo }}{% else %}0{% endif %}" 
+                                           min="0" max="100" step="0.01">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="usuario_asignado" class="form-label">Usuario Asignado</label>
+                                    <select class="form-select" id="usuario_asignado" name="usuario_asignado">
+                                        {% for usuario in usuarios %}
+                                        <option value="{{ usuario.id }}" 
+                                            {% if cliente and cliente.usuario_asignado.id == usuario.id %}selected
+                                            {% elif not cliente and usuario == request.user %}selected{% endif %}>
+                                            {{ usuario.first_name }} {{ usuario.last_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Adicional -->
+                        <div class="mb-4">
+                            <h5 class="card-title">Información Adicional</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="industria" class="form-label">Industria</label>
+                                    <input type="text" class="form-control" id="industria" name="industria" 
+                                           value="{% if cliente %}{{ cliente.industria }}{% endif %}" 
+                                           placeholder="Ej: Manufactura, Alimentos, Textil">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="numero_empleados" class="form-label">Número de Empleados</label>
+                                    <input type="number" class="form-control" id="numero_empleados" name="numero_empleados" 
+                                           value="{% if cliente %}{{ cliente.numero_empleados }}{% endif %}" 
+                                           min="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="facturacion_anual" class="form-label">Facturación Anual</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="facturacion_anual" name="facturacion_anual" 
+                                               value="{% if cliente %}{{ cliente.facturacion_anual }}{% endif %}" 
+                                               min="0" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label for="observaciones" class="form-label">Observaciones</label>
+                                    <textarea class="form-control" id="observaciones" name="observaciones" rows="3">{% if cliente %}{{ cliente.observaciones }}{% endif %}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'gestion:clientes_list' %}" class="btn btn-secondary me-2">
+                                <i class="bi bi-x me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i>
+                                {% if cliente %}Actualizar Cliente{% else %}Crear Cliente{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Ayuda -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Información de Ayuda
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Tipo de Cliente</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Corporativo:</strong> Grandes empresas</li>
+                            <li><strong>PYME:</strong> Pequeñas y medianas empresas</li>
+                            <li><strong>Distribuidor:</strong> Empresas distribuidoras</li>
+                            <li><strong>Gobierno:</strong> Entidades gubernamentales</li>
+                            <li><strong>Exportación:</strong> Clientes internacionales</li>
+                        </ul>
+                    </div>
+                    
+                    {% if cliente %}
+                    <div class="mb-3">
+                        <h6>Estado del Cliente</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Prospecto:</strong> Cliente potencial</li>
+                            <li><strong>Activo:</strong> Cliente con transacciones</li>
+                            <li><strong>Inactivo:</strong> Sin actividad reciente</li>
+                            <li><strong>Perdido:</strong> Cliente que se perdió</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6>Campos Requeridos</h6>
+                        <p class="small">Los campos marcados con (*) son obligatorios para crear el cliente.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación del formulario
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,458 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if pedido %}Editar{% else %}Nuevo{% endif %} Pedido - ColorPlastic
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    .form-section h4 {
+        margin-bottom: 1.5rem;
+        color: #1f2937;
+        font-size: 1.25rem;
+        font-weight: 600;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+    }
+    .detalle-item {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 0.75rem;
+        border: 1px solid #e5e7eb;
+    }
+    .detalle-item:hover {
+        border-color: #d1d5db;
+    }
+    .btn-remove {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #totalSection {
+        background: #f3f4f6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+    .total-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+    .total-line.total {
+        border-top: 2px solid #d1d5db;
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <div class="d-flex align-items-center justify-between">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">
+                    {% if pedido %}Editar Pedido: {{ pedido.numero_pedido }}{% else %}Nuevo Pedido{% endif %}
+                </h1>
+                <p class="text-muted mb-0">
+                    {% if pedido %}
+                        Actualizar información del pedido
+                    {% else %}
+                        Complete el formulario para crear un nuevo pedido
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="pedidoForm">
+        {% csrf_token %}
+        <input type="hidden" name="detalles" id="detallesInput">
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Información del Cliente -->
+                <div class="form-section">
+                    <h4>Información del Cliente</h4>
+                    <div class="row g-3">
+                        {% if not pedido %}
+                        <div class="col-md-6">
+                            <label for="cliente" class="form-label">Cliente <span class="text-danger">*</span></label>
+                            <select class="form-select" id="cliente" name="cliente" required onchange="cargarContactos()">
+                                <option value="">Seleccionar cliente...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id_cliente }}">{{ cliente.tercero.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente</label>
+                            <input type="text" class="form-control" value="{{ pedido.cliente.tercero.nombre }}" readonly>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="col-md-6">
+                            <label for="contacto" class="form-label">Contacto <span class="text-danger">*</span></label>
+                            <select class="form-select" id="contacto" name="contacto" required>
+                                <option value="">Seleccionar contacto...</option>
+                                {% if pedido %}
+                                    {% for contacto in contactos %}
+                                    <option value="{{ contacto.id_contacto }}" {% if contacto == pedido.contacto %}selected{% endif %}>
+                                        {{ contacto.nombre }} {{ contacto.apellido }} - {{ contacto.cargo }}
+                                    </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="orden_compra_cliente" class="form-label">Orden de Compra Cliente</label>
+                            <input type="text" class="form-control" id="orden_compra_cliente" name="orden_compra_cliente"
+                                   value="{% if pedido %}{{ pedido.orden_compra_cliente|default:'' }}{% endif %}">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="fecha_requerida" class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_requerida" name="fecha_requerida" required
+                                   value="{% if pedido %}{{ pedido.fecha_requerida|date:'Y-m-d' }}{% endif %}"
+                                   min="{{ today|date:'Y-m-d' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalles del Pedido -->
+                <div class="form-section">
+                    <h4>Productos del Pedido</h4>
+                    
+                    <!-- Agregar producto -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Material</label>
+                                    <select class="form-select" id="materialSelect">
+                                        <option value="">Seleccionar material...</option>
+                                        {% for material in materiales %}
+                                        <option value="{{ material.id_material }}" 
+                                                data-nombre="{{ material.nombre }}"
+                                                data-tipo="{{ material.tipo }}">
+                                            {{ material.nombre }} ({{ material.tipo }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Cantidad</label>
+                                    <input type="number" class="form-control" id="cantidadInput" 
+                                           placeholder="0" step="0.01" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Precio Unit.</label>
+                                    <input type="number" class="form-control" id="precioInput" 
+                                           placeholder="0" step="0.01" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Desc. %</label>
+                                    <input type="number" class="form-control" id="descuentoInput" 
+                                           placeholder="0" step="0.01" min="0" max="100" value="0">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary w-100" onclick="agregarDetalle()">
+                                        <i class="bi bi-plus-circle me-1"></i>Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lista de detalles -->
+                    <div id="detallesList">
+                        <!-- Los detalles se agregarán aquí dinámicamente -->
+                    </div>
+                    
+                    <div id="emptyMessage" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-2">No hay productos agregados al pedido</p>
+                    </div>
+                </div>
+
+                <!-- Información Adicional -->
+                <div class="form-section">
+                    <h4>Información Adicional</h4>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="direccion_entrega" class="form-label">Dirección de Entrega <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="direccion_entrega" name="direccion_entrega" rows="2" required>{% if pedido %}{{ pedido.direccion_entrega }}{% endif %}</textarea>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="condiciones_pago" class="form-label">Condiciones de Pago <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="condiciones_pago" name="condiciones_pago" required
+                                   value="{% if pedido %}{{ pedido.condiciones_pago }}{% else %}30 días{% endif %}">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="prioridad" class="form-label">Prioridad</label>
+                            <select class="form-select" id="prioridad" name="prioridad">
+                                {% for value, label in prioridad_choices %}
+                                <option value="{{ value }}" {% if pedido and pedido.prioridad == value %}selected{% elif not pedido and value == 'normal' %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3">{% if pedido %}{{ pedido.observaciones|default:'' }}{% endif %}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen y Totales -->
+            <div class="col-lg-4">
+                <div class="form-section position-sticky" style="top: 20px;">
+                    <h4>Resumen del Pedido</h4>
+                    
+                    {% if pedido %}
+                    <!-- Acciones Rápidas para pedido existente -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Acciones Rápidas</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'gestion:tarea_create' %}?modulo_origen=pedidos&pedido_id={{ pedido.id_pedido }}&titulo=Revisar pedido {{ pedido.numero_pedido }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-clipboard-check me-1"></i>Crear Tarea
+                            </a>
+                            <a href="{% url 'gestion:pedido_detail' pedido.id_pedido %}" 
+                               class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-eye me-1"></i>Ver Detalle
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div id="totalSection">
+                        <div class="total-line">
+                            <span>Subtotal:</span>
+                            <span id="subtotalDisplay">$0</span>
+                        </div>
+                        <div class="total-line">
+                            <span>Descuento (<span id="descuentoPorcentajeDisplay">0</span>%):</span>
+                            <span id="descuentoDisplay">$0</span>
+                        </div>
+                        <div class="total-line">
+                            <span>Base Gravable:</span>
+                            <span id="baseGravableDisplay">$0</span>
+                        </div>
+                        <div class="total-line">
+                            <span>IVA (19%):</span>
+                            <span id="ivaDisplay">$0</span>
+                        </div>
+                        <div class="total-line total">
+                            <span>Total:</span>
+                            <span id="totalDisplay">$0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label for="descuento_porcentaje" class="form-label">Descuento General %</label>
+                        <input type="number" class="form-control" id="descuento_porcentaje" name="descuento_porcentaje"
+                               value="{% if pedido %}{{ pedido.descuento_porcentaje }}{% else %}0{% endif %}"
+                               min="0" max="100" step="0.01" onchange="calcularTotales()">
+                    </div>
+                    
+                    <div class="mt-4 d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>
+                            {% if pedido %}Actualizar{% else %}Crear{% endif %} Pedido
+                        </button>
+                        <a href="{% if pedido %}{% url 'gestion:pedido_detail' pedido.id_pedido %}{% else %}{% url 'gestion:pedidos_list' %}{% endif %}" 
+                           class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let detalles = {% if pedido and detalles_json %}{{ detalles_json|safe }}{% else %}[]{% endif %};
+
+{% if not pedido %}
+function cargarContactos() {
+    const clienteId = document.getElementById('cliente').value;
+    const contactoSelect = document.getElementById('contacto');
+    
+    contactoSelect.innerHTML = '<option value="">Cargando...</option>';
+    
+    if (!clienteId) {
+        contactoSelect.innerHTML = '<option value="">Seleccionar contacto...</option>';
+        return;
+    }
+    
+    fetch(`{% url 'gestion:get_contactos_by_cliente' %}?cliente_id=${clienteId}`)
+        .then(response => response.json())
+        .then(data => {
+            contactoSelect.innerHTML = '<option value="">Seleccionar contacto...</option>';
+            data.contactos.forEach(contacto => {
+                const option = document.createElement('option');
+                option.value = contacto.id;
+                option.textContent = contacto.nombre + (contacto.cargo ? ` - ${contacto.cargo}` : '');
+                contactoSelect.appendChild(option);
+            });
+            
+            // Si es el primer contacto, seleccionarlo automáticamente
+            if (data.contactos.length === 1) {
+                contactoSelect.value = data.contactos[0].id;
+            }
+            
+            // Cargar dirección de entrega del cliente
+            const clienteSeleccionado = document.querySelector(`#cliente option[value="${clienteId}"]`);
+            if (clienteSeleccionado) {
+                // Aquí podrías hacer otra llamada AJAX para obtener la dirección del cliente
+                // Por ahora usaremos una dirección genérica
+                document.getElementById('direccion_entrega').value = 'Dirección registrada del cliente';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            contactoSelect.innerHTML = '<option value="">Error al cargar contactos</option>';
+        });
+}
+{% endif %}
+
+function agregarDetalle() {
+    const materialSelect = document.getElementById('materialSelect');
+    const cantidadInput = document.getElementById('cantidadInput');
+    const precioInput = document.getElementById('precioInput');
+    const descuentoInput = document.getElementById('descuentoInput');
+    
+    if (!materialSelect.value || !cantidadInput.value || !precioInput.value) {
+        alert('Por favor complete todos los campos del producto');
+        return;
+    }
+    
+    const material = materialSelect.options[materialSelect.selectedIndex];
+    const detalle = {
+        material_id: materialSelect.value,
+        material_nombre: material.dataset.nombre,
+        cantidad: parseFloat(cantidadInput.value),
+        unidad_medida: 'KG',
+        precio_unitario: parseFloat(precioInput.value),
+        descuento_porcentaje: parseFloat(descuentoInput.value) || 0,
+        subtotal: 0
+    };
+    
+    // Calcular subtotal
+    detalle.subtotal = detalle.cantidad * detalle.precio_unitario * (1 - detalle.descuento_porcentaje / 100);
+    
+    detalles.push(detalle);
+    
+    // Limpiar campos
+    materialSelect.value = '';
+    cantidadInput.value = '';
+    precioInput.value = '';
+    descuentoInput.value = '0';
+    
+    renderDetalles();
+    calcularTotales();
+}
+
+function eliminarDetalle(index) {
+    detalles.splice(index, 1);
+    renderDetalles();
+    calcularTotales();
+}
+
+function renderDetalles() {
+    const container = document.getElementById('detallesList');
+    const emptyMessage = document.getElementById('emptyMessage');
+    
+    if (detalles.length === 0) {
+        container.innerHTML = '';
+        emptyMessage.style.display = 'block';
+        return;
+    }
+    
+    emptyMessage.style.display = 'none';
+    
+    container.innerHTML = detalles.map((detalle, index) => `
+        <div class="detalle-item">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <strong>${detalle.material_nombre}</strong>
+                </div>
+                <div class="col-md-2">
+                    ${detalle.cantidad} ${detalle.unidad_medida}
+                </div>
+                <div class="col-md-2">
+                    $${detalle.precio_unitario.toFixed(2)}
+                </div>
+                <div class="col-md-2">
+                    ${detalle.descuento_porcentaje}% desc.
+                </div>
+                <div class="col-md-2 text-end">
+                    <strong>$${detalle.subtotal.toFixed(2)}</strong>
+                    <button type="button" class="btn btn-danger btn-sm btn-remove ms-2" onclick="eliminarDetalle(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function calcularTotales() {
+    const descuentoGeneral = parseFloat(document.getElementById('descuento_porcentaje').value) || 0;
+    
+    const subtotal = detalles.reduce((sum, detalle) => sum + detalle.subtotal, 0);
+    const descuentoValor = subtotal * (descuentoGeneral / 100);
+    const baseGravable = subtotal - descuentoValor;
+    const iva = baseGravable * 0.19;
+    const total = baseGravable + iva;
+    
+    document.getElementById('subtotalDisplay').textContent = `$${subtotal.toFixed(0)}`;
+    document.getElementById('descuentoPorcentajeDisplay').textContent = descuentoGeneral;
+    document.getElementById('descuentoDisplay').textContent = `$${descuentoValor.toFixed(0)}`;
+    document.getElementById('baseGravableDisplay').textContent = `$${baseGravable.toFixed(0)}`;
+    document.getElementById('ivaDisplay').textContent = `$${iva.toFixed(0)}`;
+    document.getElementById('totalDisplay').textContent = `$${total.toFixed(0)}`;
+}
+
+// Manejar el envío del formulario
+document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+    if (detalles.length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos un producto al pedido');
+        return;
+    }
+    
+    // Guardar detalles en el campo oculto
+    document.getElementById('detallesInput').value = JSON.stringify(detalles);
+});
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    renderDetalles();
+    calcularTotales();
+});
+</script>
+{% endblock %}
